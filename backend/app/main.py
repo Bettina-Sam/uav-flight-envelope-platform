@@ -129,24 +129,18 @@ def _load_artifacts():
     # Prefer computing from the actual training CSV; fall back to the
     # midpoint/quarter-range of the declared sampling BOUNDS if the raw
     # dataset file isn't shipped (e.g. slim deployment).
-    dataset_path = os.path.join(BACKEND_DIR, "data", "uav_synthetic_dataset.csv")
-    if os.path.exists(dataset_path):
-        try:
-            df = pd.read_csv(dataset_path)
-            _feature_means = {c: float(df[c].mean()) for c in FEATURE_COLUMNS}
-            _feature_stds = {c: float(df[c].std() or 1.0) for c in FEATURE_COLUMNS}
-        except Exception:
-            _feature_means, _feature_stds = None, None
-    if _feature_means is None:
-        _feature_means, _feature_stds = {}, {}
-        for c in FEATURE_COLUMNS:
-            if c in BOUNDS:
-                lo, hi = BOUNDS[c]
-                _feature_means[c] = (lo + hi) / 2.0
-                _feature_stds[c] = max((hi - lo) / 4.0, 1e-6)
-            else:
-                _feature_means[c], _feature_stds[c] = 0.0, 1.0
+    # Memory-efficient deployment:
+    # Do not load the complete training CSV during API startup.
+    _feature_means, _feature_stds = {}, {}
 
+    for c in FEATURE_COLUMNS:
+        if c in BOUNDS:
+            lo, hi = BOUNDS[c]
+            _feature_means[c] = (lo + hi) / 2.0
+            _feature_stds[c] = max((hi - lo) / 4.0, 1e-6)
+        else:
+            _feature_means[c] = 0.0
+            _feature_stds[c] = 1.0
 
 @app.on_event("startup")
 def startup_event():
