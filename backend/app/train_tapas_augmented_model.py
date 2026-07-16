@@ -136,11 +136,12 @@ def train(seed=42):
     X_test_s = scaler.transform(X_test)
 
     model = ExtraTreesRegressor(
-        n_estimators=300,
-        max_depth=28,
+        n_estimators=80,
+        max_depth=14,
         random_state=seed,
         n_jobs=-1,
-        min_samples_leaf=1,
+        min_samples_leaf=3,
+        max_features=0.8,
     )
     t0 = time.time()
     model.fit(X_train_s, y_train.values)
@@ -148,7 +149,13 @@ def train(seed=42):
     pred = model.predict(X_test_s)
     avg, per_target = _evaluate(y_test, pred)
 
-    clf = RandomForestClassifier(n_estimators=250, random_state=seed, n_jobs=-1)
+    clf = RandomForestClassifier(
+    n_estimators=80,
+    max_depth=14,
+    min_samples_leaf=3,
+    random_state=seed,
+    n_jobs=1,
+    )
     clf.fit(X_train_s, yc_train)
     clf_acc = float(clf.score(X_test_s, yc_test))
 
