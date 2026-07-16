@@ -15,9 +15,6 @@ import io
 import csv
 from datetime import datetime
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -40,6 +37,9 @@ STATUS_COLOR = {"SAFE": BRAND_GREEN, "CAUTION": BRAND_AMBER, "CRITICAL": BRAND_R
 
 def _make_comparison_chart(comparison: list) -> io.BytesIO:
     """Renders the physics-vs-ML comparison as a grouped bar chart PNG for embedding."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
     keys = [c["target"] for c in comparison if c["target"] not in ("lift_n", "drag_n")]
     physics_vals = [c["physics_value"] for c in comparison if c["target"] in keys]
     ml_vals = [c["ml_value"] for c in comparison if c["target"] in keys]
