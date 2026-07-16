@@ -117,8 +117,10 @@ def _load_artifacts():
     # than failing to start on an older model directory.
     all_models_path = os.path.join(MODELS_DIR, "all_models.joblib")
     scatter_path = os.path.join(MODELS_DIR, "scatter_data.json")
-    if os.path.exists(all_models_path):
-        _all_models = joblib.load(all_models_path)
+
+    # Lazy loading (do NOT load at startup)
+    _all_models = None
+
     if os.path.exists(scatter_path):
         with open(scatter_path) as f:
             _scatter_data = json.load(f)
@@ -904,8 +906,18 @@ def uncertainty_monte_carlo(req: MonteCarloRequest):
 # own error bars.
 @app.post("/uncertainty/epistemic", response_model=EpistemicResponse)
 def uncertainty_epistemic(req: EpistemicRequest):
-    if _all_models is None:
-        raise HTTPException(503, "All-model ensemble not available - retrain with the current train_model.py to enable epistemic uncertainty.")
+   global _all_models
+
+if _all_models is None:
+    all_models_path = os.path.join(MODELS_DIR, "all_models.joblib")
+
+    if not os.path.exists(all_models_path):
+        raise HTTPException(
+            status_code=503,
+            detail="All-model ensemble not available."
+        )
+
+    _all_models = joblib.load(all_models_path)
     if req.target not in REG_TARGETS:
         raise HTTPException(400, f"Unknown target '{req.target}'. Choose from {REG_TARGETS}")
 
