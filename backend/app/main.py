@@ -906,20 +906,24 @@ def uncertainty_monte_carlo(req: MonteCarloRequest):
 # own error bars.
 @app.post("/uncertainty/epistemic", response_model=EpistemicResponse)
 def uncertainty_epistemic(req: EpistemicRequest):
-   global _all_models
+    global _all_models
 
-if _all_models is None:
-    all_models_path = os.path.join(MODELS_DIR, "all_models.joblib")
+    if _all_models is None:
+        all_models_path = os.path.join(MODELS_DIR, "all_models.joblib")
 
-    if not os.path.exists(all_models_path):
-        raise HTTPException(
-            status_code=503,
-            detail="All-model ensemble not available."
-        )
+        if not os.path.exists(all_models_path):
+            raise HTTPException(
+                status_code=503,
+                detail="All-model ensemble not available."
+            )
 
-    _all_models = joblib.load(all_models_path)
+        _all_models = joblib.load(all_models_path)
+
     if req.target not in REG_TARGETS:
-        raise HTTPException(400, f"Unknown target '{req.target}'. Choose from {REG_TARGETS}")
+        raise HTTPException(
+            400,
+            f"Unknown target '{req.target}'. Choose from {REG_TARGETS}"
+        )
 
     uav = _uav_config_from_input(req.input)
     row = _feature_row(uav)
@@ -927,15 +931,24 @@ if _all_models is None:
     target_idx = REG_TARGETS.index(req.target)
 
     predictions = []
+
     for name, model in _all_models.items():
         try:
             pred = float(model.predict(Xs)[0][target_idx])
         except Exception:
             continue
+
         test_r2 = 0.0
         if _model_comparison and name in _model_comparison:
             test_r2 = _model_comparison[name]["per_target"].get(req.target, {}).get("R2", 0.0)
-        predictions.append(EpistemicModelPrediction(model=name, value=pred, test_r2=test_r2))
+
+        predictions.append(
+            EpistemicModelPrediction(
+                model=name,
+                value=pred,
+                test_r2=test_r2
+            )
+        )
 
     values = np.array([p.value for p in predictions])
     mean_v = float(values.mean()) if len(values) else 0.0
@@ -943,8 +956,12 @@ if _all_models is None:
     spread_pct = (std_v / abs(mean_v) * 100.0) if abs(mean_v) > 1e-9 else 0.0
 
     return EpistemicResponse(
-        target=req.target, predictions=predictions, mean=mean_v, std=std_v,
-        spread_pct=spread_pct, method="cross_model_prediction_spread",
+        target=req.target,
+        predictions=predictions,
+        mean=mean_v,
+        std=std_v,
+        spread_pct=spread_pct,
+        method="cross_model_prediction_spread",
     )
 
 
