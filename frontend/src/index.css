@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------
+   THEME TOKENS
+   Light mode is the default (per product requirement). Dark mode is
+   opt-in via a `.dark` class on <html>, toggled by ThemeToggle.tsx and
+   persisted to localStorage. All values are "R G B" triplets (no commas,
+   no rgb() wrapper) so Tailwind's rgb(var(--x) / <alpha-value>) opacity
+   modifiers (e.g. bg-cyan/10) work correctly.
+--------------------------------------------------------------------- */
+:root {
+  --color-bg: 247 249 252;        /* soft off-white, not pure white */
+  --color-panel: 255 255 255;
+  --color-border: 222 229 238;
+  --color-text: 16 24 39;
+  --color-muted: 100 113 133;
+  --color-cyan: 13 133 124;       /* darker teal for AA contrast on light bg */
+  --color-amber: 180 95 6;
+  --color-red: 200 30 30;
+  --color-green: 4 130 90;
+}
+
+html.dark {
+  --color-bg: 11 18 32;
+  --color-panel: 18 26 43;
+  --color-border: 34 48 74;
+  --color-text: 230 237 243;
+  --color-muted: 138 155 181;
+  --color-cyan: 79 209 197;
+  --color-amber: 245 166 35;
+  --color-red: 239 68 68;
+  --color-green: 52 211 153;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+  font-family: 'Inter', sans-serif;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgb(var(--color-cyan) / 0.07), transparent 40%),
+    radial-gradient(circle at 85% 20%, rgb(var(--color-amber) / 0.05), transparent 35%);
+  background-attachment: fixed;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::selection {
+  background: rgb(var(--color-cyan) / 0.30);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-border)) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 4px; }
+
+.font-display { font-family: 'Space Grotesk', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+.panel {
+  background: rgb(var(--color-panel));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: 14px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--color-cyan));
+}
+
+.horizon-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--color-border)) 20%, rgb(var(--color-border)) 80%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--color-cyan));
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------
+   ANIMATED AEROSPACE BACKGROUND (AnimatedBackground.tsx)
+--------------------------------------------------------------------- */
+.bg-sky-anim {
+  background: radial-gradient(circle at 20% 10%, rgb(var(--color-cyan) / 0.13), transparent 42%),
+              radial-gradient(circle at 82% 25%, rgb(var(--color-amber) / 0.09), transparent 38%),
+              radial-gradient(circle at 50% 90%, rgb(var(--color-cyan) / 0.06), transparent 45%);
+  background-size: 200% 200%;
+  animation: sky-drift 26s ease-in-out infinite alternate;
+}
+@keyframes sky-drift {
+  0%   { background-position: 0% 0%, 100% 0%, 50% 100%; }
+  100% { background-position: 20% 15%, 80% 20%, 40% 85%; }
+}
+
+.grid-horizon {
+  background-image:
+    linear-gradient(rgb(var(--color-cyan) / 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--color-cyan) / 0.10) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.9), transparent 90%);
+          mask-image: linear-gradient(to top, rgba(0,0,0,0.9), transparent 90%);
+  transform: perspective(300px) rotateX(55deg);
+  transform-origin: bottom;
+  animation: grid-scroll 9s linear infinite;
+}
+@keyframes grid-scroll {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 0 42px, 42px 0; }
+}
+
+.radar-sweep {
+  background: conic-gradient(from 0deg, rgb(var(--color-cyan) / 0.28), transparent 28%, transparent 100%);
+  animation: radar-spin 6s linear infinite;
+}
+@keyframes radar-spin {
+  to { transform: rotate(360deg); }
+}
+
+.radar-sweep-reverse {
+  background: conic-gradient(from 180deg, rgb(var(--color-amber) / 0.22), transparent 22%, transparent 100%);
+  animation: radar-spin-reverse 9s linear infinite;
+}
+@keyframes radar-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+
+.scan-beam {
+  background: linear-gradient(90deg, transparent, rgb(var(--color-cyan) / 0.05), transparent);
+  animation: scan-move 16s ease-in-out infinite;
+}
+@keyframes scan-move {
+  0%   { transform: translateX(-20vw); }
+  50%  { transform: translateX(90vw); }
+  100% { transform: translateX(-20vw); }
+}
+
+.particle-drift {
+  top: 100%;
+  animation-name: particle-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes particle-rise {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  8%   { opacity: 0.7; }
+  92%  { opacity: 0.5; }
+  100% { transform: translateY(-100vh) translateX(24px); opacity: 0; }
+}
+
+.bg-vignette {
+  background: radial-gradient(ellipse at center, transparent 55%, rgb(var(--color-bg) / 0.55) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
