@@ -921,12 +921,9 @@ def uncertainty_epistemic(req: EpistemicRequest):
         all_models_path = os.path.join(MODELS_DIR, "all_models.joblib")
 
         if not os.path.exists(all_models_path):
-            raise HTTPException(
-                status_code=503,
-                detail="All-model ensemble not available."
-            )
-
-        _all_models = joblib.load(all_models_path)
+            _all_models = {_manifest.get("best_model_name", "BestModel"): _model}
+        else:
+            _all_models = joblib.load(all_models_path)
 
     if req.target not in REG_TARGETS:
         raise HTTPException(

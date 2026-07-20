@@ -148,11 +148,11 @@ def train(seed=42):
     X_test_s = scaler.transform(X_test)
 
     model = ExtraTreesRegressor(
-        n_estimators=140,
-        max_depth=18,
+        n_estimators=36,
+        max_depth=12,
         random_state=seed,
         n_jobs=-1,
-        min_samples_leaf=2,
+        min_samples_leaf=4,
         max_features=0.8,
     )
     t0 = time.time()
@@ -185,7 +185,9 @@ def train(seed=42):
     joblib.dump(model, os.path.join(MODELS_DIR, "best_model.joblib"), compress=3)
     joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.joblib"), compress=3)
     joblib.dump(clf, os.path.join(MODELS_DIR, "safety_classifier.joblib"), compress=3)
-    joblib.dump({"TAPASLocalExtraTrees": model}, os.path.join(MODELS_DIR, "all_models.joblib"), compress=3)
+    all_models_path = os.path.join(MODELS_DIR, "all_models.joblib")
+    if os.path.exists(all_models_path):
+        os.remove(all_models_path)
 
     manifest = {
         "best_model_name": "TAPASLocalExtraTrees",
