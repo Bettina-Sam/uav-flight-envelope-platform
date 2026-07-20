@@ -1,9 +1,10 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip as LeafletTooltip } from 'react-leaflet';
+import html2canvas from 'html2canvas';
 import 'leaflet/dist/leaflet.css';
-import { Trash2, MapPin } from 'lucide-react';
+import { Download, Trash2, MapPin } from 'lucide-react';
 import { listMissionHistory, deleteMissionFromHistory, HistoricalMission, MISSION_TYPE_COLORS } from '../lib/missionHistory';
 
 const DEFAULT_CENTER: [number, number] = [20, 0];
@@ -11,6 +12,7 @@ const DEFAULT_CENTER: [number, number] = [20, 0];
 export default function GlobalMissionMapPage() {
   const [missions, setMissions] = useState<HistoricalMission[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const mapExportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMissions(listMissionHistory()); }, []);
 
@@ -25,14 +27,35 @@ export default function GlobalMissionMapPage() {
     ? [allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length, allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length]
     : DEFAULT_CENTER;
 
+  const handleDownloadPng = async () => {
+    if (!mapExportRef.current) return;
+    const canvas = await html2canvas(mapExportRef.current, {
+      backgroundColor: null,
+      useCORS: true,
+      allowTaint: true,
+      scale: 2,
+    });
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = 'global-mission-map.png';
+    link.click();
+  };
+
   return (
     <div>
       <div className="eyebrow mb-2">Mission History</div>
       <h1 className="font-display text-3xl font-semibold mb-2">Global Mission Map</h1>
-      <p className="text-muted text-sm mb-6 max-w-2xl">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-6">
+      <p className="text-muted text-sm max-w-2xl">
         Every mission you've computed, in this browser, on one map — color-coded by mission type.
         Click a mission in the list to highlight its route.
       </p>
+        {missions.length > 0 && (
+          <button onClick={handleDownloadPng} className="inline-flex items-center gap-1.5 border border-border text-muted hover:text-cyan hover:border-cyan/50 font-mono text-[11px] uppercase tracking-wider px-3 py-2 rounded-md transition">
+            <Download className="w-3.5 h-3.5" /> Download PNG
+          </button>
+        )}
+      </div>
 
       {missions.length === 0 ? (
         <div className="panel p-10 text-center">
@@ -41,7 +64,7 @@ export default function GlobalMissionMapPage() {
         </div>
       ) : (
         <div className="grid lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 panel p-2 overflow-hidden">
+          <div ref={mapExportRef} className="lg:col-span-2 panel p-2 overflow-hidden">
             <div className="rounded-md overflow-hidden" style={{ height: 480 }}>
               <MapContainer center={center} zoom={allPoints.length > 0 ? 6 : 2} style={{ height: '100%', width: '100%' }}>
                 <TileLayer

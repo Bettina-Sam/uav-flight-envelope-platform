@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sliders, GitCompare, Download, Loader2, RotateCcw } from 'lucide-react';
+import { Activity, Fuel, Gauge, Plane, Sliders, GitCompare, Download, Loader2, RotateCcw, Timer } from 'lucide-react';
 import { useUAV } from '../context/UAVContext';
 import { predict, getDesignScore } from '../api/client';
 import { PredictResponse, DesignScoreResponse, UAVInput } from '../types';
@@ -21,6 +21,34 @@ const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; s
   { key: 'cd0', label: 'CD0', min: 0.006, max: 0.08, step: 0.001, unit: '' },
   { key: 'propulsion_efficiency', label: 'Propulsion Efficiency', min: 0.3, max: 0.95, step: 0.01, unit: '' },
 ];
+
+const TAPAS_BASELINE_RANGE_KM = 158.21;
+const FUEL_DENSITY_KG_PER_L = 0.8;
+
+function FuelGauge({ capacityL, estimatedBurnKgHr }: { capacityL: number; estimatedBurnKgHr: number }) {
+  const capped = Math.max(0, Math.min(1, capacityL / 500));
+  const angle = -100 + capped * 200;
+  const reserveHours = estimatedBurnKgHr > 0 ? (capacityL * FUEL_DENSITY_KG_PER_L) / estimatedBurnKgHr : 0;
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-2">
+        <div className="eyebrow flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5 text-amber" /> Fuel</div>
+        <span className="text-[10px] font-mono text-muted">{capacityL.toFixed(0)} L</span>
+      </div>
+      <svg viewBox="0 0 180 112" className="w-full max-w-[220px] mx-auto">
+        <path d="M24 92 A66 66 0 0 1 156 92" fill="none" stroke="rgba(148,163,184,0.28)" strokeWidth="14" strokeLinecap="round" />
+        <path d="M24 92 A66 66 0 0 1 156 92" fill="none" stroke="#F5A623" strokeWidth="14" strokeLinecap="round" strokeDasharray={`${capped * 208} 208`} />
+        <line x1="90" y1="92" x2="90" y2="34" stroke="#4FD1C5" strokeWidth="3" strokeLinecap="round" transform={`rotate(${angle} 90 92)`} />
+        <circle cx="90" cy="92" r="5" fill="#4FD1C5" />
+        <text x="24" y="108" fontSize="10" fontFamily="monospace" fill="#8A9BB5">EMPTY</text>
+        <text x="134" y="108" fontSize="10" fontFamily="monospace" fill="#8A9BB5">500L+</text>
+      </svg>
+      <div className="text-center text-[11px] text-muted">
+        Est. fuel endurance: <span className="font-mono text-text">{reserveHours.toFixed(1)} hr</span>
+      </div>
+    </div>
+  );
+}
 
 export default function CommandCenterPage() {
   const { input, result: baseResult } = useUAV();
@@ -91,6 +119,9 @@ export default function CommandCenterPage() {
   }
 
   const p = liveResult.physics;
+  const tapasRangePct = (p.range_km / TAPAS_BASELINE_RANGE_KM) * 100;
+  const fuelBurnKgHr = liveInput.sfc_kg_per_n_s * p.drag_n * 3600;
+  const fuelConfig = liveInput.fuel_capacity_l > 0 || liveInput.sfc_kg_per_n_s > 0;
 
   return (
     <div>
@@ -114,7 +145,10 @@ export default function CommandCenterPage() {
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <div className="lg:col-span-2 panel p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="eyebrow">Flight Profile</div>
+            <div>
+              <div className="eyebrow">Flight Profile</div>
+              <div className="text-[11px] text-muted mt-1">Climb to cruise, hold recommended altitude, then descend.</div>
+            </div>
             <SafetyBadge status={p.safety_status} />
           </div>
           <FlightProfileVisualizer
@@ -124,7 +158,7 @@ export default function CommandCenterPage() {
             safetyStatus={p.safety_status as any} numEngines={1}
           />
         </div>
-        <div className="panel p-5 flex flex-col items-center justify-center">
+        <div className="panel p-5 space-y-4">
           <AltitudeGauge
             label="Altitude Envelope" min={p.min_altitude_m} max={p.max_altitude_m} recommended={p.recommended_altitude_m} serviceCeiling={p.service_ceiling_m}
             ghost={ghostResult ? {
@@ -133,6 +167,25 @@ export default function CommandCenterPage() {
               label: savedConfigs.find((c) => c.id === ghostId)?.name || 'Ghost',
             } : undefined}
           />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-md border border-border p-3">
+              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Plane className="w-3 h-3" /> Phase</div>
+              <div className="font-mono text-sm text-cyan mt-1">Climb / Cruise / Descend</div>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Timer className="w-3 h-3" /> Endurance</div>
+              <div className="font-mono text-sm text-text mt-1">{p.endurance_hr.toFixed(2)} hr</div>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Gauge className="w-3 h-3" /> T/W</div>
+              <div className="font-mono text-sm text-text mt-1">{liveInput.thrust_to_weight.toFixed(2)}</div>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Activity className="w-3 h-3" /> TAPAS Scale</div>
+              <div className="font-mono text-sm text-amber mt-1">{tapasRangePct.toFixed(0)}% range</div>
+            </div>
+          </div>
+          {fuelConfig && <FuelGauge capacityL={liveInput.fuel_capacity_l} estimatedBurnKgHr={fuelBurnKgHr} />}
         </div>
       </div>
 

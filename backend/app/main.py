@@ -1067,6 +1067,7 @@ def report_pdf(req: ReportRequest):
         local_explanation=local_explanation, optimize_range=optimize_range,
         optimize_endurance=optimize_endurance, failure_results=failure_results,
         design_score=score, mission=mission_dict,
+        flight_profile_image=req.flight_profile_image,
     )
     return StreamingResponse(
         io.BytesIO(pdf_bytes), media_type="application/pdf",

@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import html2canvas from 'html2canvas';
 import { FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useUAV } from '../context/UAVContext';
 import { downloadReport } from '../api/client';
 import SavedConfigsPanel from './SavedConfigsPanel';
+import FlightProfileVisualizer from '../components/FlightProfileVisualizer';
 
 export default function ReportGenerationPage() {
   const { input, result, lastMission } = useUAV();
   const [downloading, setDownloading] = useState<'pdf' | 'csv' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const flightProfileRef = useRef<HTMLDivElement>(null);
 
   if (!result) {
     return (
@@ -23,7 +26,15 @@ export default function ReportGenerationPage() {
     setDownloading(format);
     setError(null);
     try {
-      await downloadReport(input, format, format === 'pdf' ? lastMission : undefined);
+      let flightProfileImage: string | null = null;
+      if (format === 'pdf' && flightProfileRef.current) {
+        const canvas = await html2canvas(flightProfileRef.current, {
+          backgroundColor: null,
+          scale: 2,
+        });
+        flightProfileImage = canvas.toDataURL('image/png');
+      }
+      await downloadReport(input, format, format === 'pdf' ? lastMission : undefined, flightProfileImage);
     } catch (e: any) {
       setError(e?.message || 'Report generation failed');
     } finally {
@@ -33,6 +44,21 @@ export default function ReportGenerationPage() {
 
   return (
     <div className="max-w-4xl">
+      <div className="fixed -left-[10000px] top-0 w-[760px] pointer-events-none" aria-hidden="true">
+        <div ref={flightProfileRef}>
+          <FlightProfileVisualizer
+            minAltitude={result.physics.min_altitude_m}
+            maxAltitude={result.physics.max_altitude_m}
+            recommendedAltitude={result.physics.recommended_altitude_m}
+            serviceCeiling={result.physics.service_ceiling_m}
+            cruiseSpeedMs={input.cruise_speed_ms}
+            rateOfClimbMs={result.physics.rate_of_climb_ms}
+            safetyStatus={result.physics.safety_status}
+            numEngines={result.physics.engine_out?.engines_operating ?? 1}
+            silent
+          />
+        </div>
+      </div>
       <div className="eyebrow mb-2">Step 8</div>
       <h1 className="font-display text-3xl font-semibold mb-2">Export Report</h1>
       <p className="text-muted text-sm mb-4 max-w-2xl">

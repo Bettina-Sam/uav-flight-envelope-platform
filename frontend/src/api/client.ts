@@ -134,10 +134,10 @@ export async function batchPredict(file: File): Promise<any> {
 }
 
 export async function downloadReport(
-  input: UAVInput, format: 'pdf' | 'csv', mission?: MissionComputeResponse | null
+  input: UAVInput, format: 'pdf' | 'csv', mission?: MissionComputeResponse | null, flightProfileImage?: string | null
 ): Promise<void> {
   const body = format === 'pdf'
-    ? { input, mission: mission || null, include_failure_analysis: true, include_optimization: true }
+    ? { input, mission: mission || null, flight_profile_image: flightProfileImage || null, include_failure_analysis: true, include_optimization: true }
     : input;
   const res = await client.post(`/report/${format}`, body, { responseType: 'blob' });
   const url = window.URL.createObjectURL(new Blob([res.data]));

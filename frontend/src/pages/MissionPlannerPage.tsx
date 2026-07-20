@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Circle, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -25,6 +25,12 @@ import { saveMissionToHistory } from '../lib/missionHistory';
 
 const DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
+const PlaneIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:30px;height:30px;border-radius:999px;background:#4FD1C5;color:#071018;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px rgba(79,209,197,.22);font-size:17px;transform:rotate(45deg)">✈</div>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+});
 
 const MISSION_TYPES = [
   { key: 'Surveillance', desc: 'Loiter-heavy, moderate altitude, long dwell time.' },
@@ -54,7 +60,7 @@ function FlyTo({ target }: { target: [number, number, number] | null }) {
 }
 
 export default function MissionPlannerPage() {
-  const { input, setLastMission } = useUAV();
+  const { input, result: currentPrediction, setLastMission } = useUAV();
   const { theme } = useTheme();
   const c = getChartColors(theme);
 
@@ -63,6 +69,7 @@ export default function MissionPlannerPage() {
   const [buffer, setBuffer] = useState(100);
   const [returnToLaunch, setReturnToLaunch] = useState(false);
   const [result, setResult] = useState<MissionComputeResponse | null>(null);
+  const [missionProgress, setMissionProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,6 +146,46 @@ export default function MissionPlannerPage() {
   );
 
   const liveDistanceKm = useMemo(() => totalRouteDistanceKm(effectiveRoute), [effectiveRoute]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setMissionProgress((p) => (p + 0.004) % 1), 80);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const planeState = useMemo(() => {
+    if (effectiveRoute.length < 2) return null;
+    const total = totalRouteDistanceKm(effectiveRoute);
+    if (total <= 0) return null;
+    const targetDistance = missionProgress * total;
+    let covered = 0;
+    for (let i = 0; i < effectiveRoute.length - 1; i++) {
+      const a = effectiveRoute[i];
+      const b = effectiveRoute[i + 1];
+      const legDistance = haversineKm(a, b);
+      if (covered + legDistance >= targetDistance || i === effectiveRoute.length - 2) {
+        const t = legDistance > 0 ? Math.max(0, Math.min(1, (targetDistance - covered) / legDistance)) : 0;
+        const lat = a.lat + (b.lat - a.lat) * t;
+        const lon = a.lon + (b.lon - a.lon) * t;
+        const leg = result?.legs[i];
+        const elapsedHr = result ? result.legs.slice(0, i).reduce((sum, l) => sum + l.time_hr, 0) + (leg?.time_hr ?? 0) * t : 0;
+        const energyUsed = result ? result.legs.slice(0, i).reduce((sum, l) => sum + l.energy_wh, 0) + (leg?.energy_wh ?? 0) * t : 0;
+        const batteryRemaining = result ? Math.max(0, result.battery_capacity_wh - energyUsed) : null;
+        const fuelBurnKgHr = input.sfc_kg_per_n_s * (currentPrediction?.physics.drag_n ?? 0) * 3600;
+        const fuelUsedL = fuelBurnKgHr > 0 ? (elapsedHr * fuelBurnKgHr) / 0.8 : 0;
+        return {
+          position: [lat, lon] as [number, number],
+          legIndex: i,
+          legDistance,
+          etaMin: result ? Math.max(0, (result.mission_duration_hr - elapsedHr) * 60) : null,
+          altitude: result?.cruise_altitude_m ?? currentPrediction?.physics.recommended_altitude_m ?? null,
+          batteryRemaining,
+          fuelRemainingL: Math.max(0, input.fuel_capacity_l - fuelUsedL),
+        };
+      }
+      covered += legDistance;
+    }
+    return null;
+  }, [effectiveRoute, missionProgress, result, input, currentPrediction]);
 
   const handleCompute = async () => {
     if (effectiveRoute.length < 2) {
@@ -263,6 +310,13 @@ export default function MissionPlannerPage() {
               />
               <FlyTo target={flyTarget} />
               <ClickToAddWaypoint onAdd={addWaypoint} />
+              {effectiveRoute[0] && currentPrediction && (
+                <Circle
+                  center={[effectiveRoute[0].lat, effectiveRoute[0].lon]}
+                  radius={Math.max(0, currentPrediction.physics.range_km * 500)}
+                  pathOptions={{ color: '#4FD1C5', weight: 1, opacity: 0.45, fillOpacity: 0.05 }}
+                />
+              )}
               {waypoints.map((w, i) => (
                 <Marker key={i} position={[w.lat, w.lon]} />
               ))}
@@ -271,6 +325,21 @@ export default function MissionPlannerPage() {
                   positions={effectiveRoute.map((w) => [w.lat, w.lon])}
                   pathOptions={{ color: '#4FD1C5', weight: 3 }}
                 />
+              )}
+              {planeState && (
+                <Marker position={planeState.position} icon={PlaneIcon}>
+                  <Popup>
+                    <div style={{ minWidth: 180 }}>
+                      <strong>Mission aircraft</strong><br />
+                      Leg: WP{planeState.legIndex + 1} {'->'} WP{planeState.legIndex + 2}<br />
+                      Leg distance: {planeState.legDistance.toFixed(2)} km<br />
+                      ETA remaining: {planeState.etaMin !== null ? `${planeState.etaMin.toFixed(1)} min` : 'Compute mission'}<br />
+                      Altitude: {planeState.altitude !== null ? `${planeState.altitude.toFixed(0)} m` : 'n/a'}<br />
+                      Battery remaining: {planeState.batteryRemaining !== null ? `${planeState.batteryRemaining.toFixed(0)} Wh` : 'n/a'}<br />
+                      Fuel remaining: {input.fuel_capacity_l > 0 ? `${planeState.fuelRemainingL.toFixed(1)} L` : 'n/a'}
+                    </div>
+                  </Popup>
+                </Marker>
               )}
             </MapContainer>
           </div>

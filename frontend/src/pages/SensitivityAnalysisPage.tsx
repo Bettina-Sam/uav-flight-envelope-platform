@@ -20,6 +20,7 @@ const PARAMS: { key: keyof UAVInput; label: string; min: number; max: number }[]
   { key: 'thrust_to_weight', label: 'Thrust-to-Weight', min: 0.01, max: 0.5 },
   { key: 'propulsion_efficiency', label: 'Propulsion Efficiency', min: 0.3, max: 0.95 },
   { key: 'battery_wh', label: 'Battery Capacity (Wh)', min: 100, max: 150000 },
+  { key: 'fuel_capacity_l', label: 'Fuel Capacity (L)', min: 0, max: 5000 },
   { key: 'air_density_kg_m3', label: 'Air Density (kg/m³)', min: 0.2, max: 1.3 },
   { key: 'sfc_kg_per_n_s', label: 'SFC (kg/N·s)', min: 0.0, max: 0.00002 },
   { key: 'aux_power_w', label: 'Aux Power (W)', min: 0, max: 2000 },
@@ -43,6 +44,12 @@ const PAIR_PRESETS: { label: string; x: keyof UAVInput; y: keyof UAVInput; targe
   { label: 'Mass vs Battery Capacity → Range', x: 'mass_kg', y: 'battery_wh', target: 'range_km' },
   { label: 'Wing Area vs Payload → Endurance', x: 'wing_area_m2', y: 'payload_kg', target: 'endurance_hr' },
 ];
+
+PAIR_PRESETS.push(
+  { label: 'Fuel Capacity vs Cruise Speed -> Range', x: 'fuel_capacity_l', y: 'cruise_speed_ms', target: 'range_km' },
+  { label: 'SFC vs Thrust-to-Weight -> Endurance', x: 'sfc_kg_per_n_s', y: 'thrust_to_weight', target: 'endurance_hr' },
+  { label: 'Payload vs Fuel Capacity -> Endurance', x: 'payload_kg', y: 'fuel_capacity_l', target: 'endurance_hr' },
+);
 
 export default function SensitivityAnalysisPage() {
   const { input, result } = useUAV();

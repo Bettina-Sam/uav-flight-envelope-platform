@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAnimationFrame } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { playFlightPhaseTone } from '../lib/sound';
 
 interface Props {
   minAltitude: number;
@@ -11,78 +12,174 @@ interface Props {
   rateOfClimbMs: number;
   safetyStatus: 'SAFE' | 'CAUTION' | 'CRITICAL';
   numEngines: number;
+  silent?: boolean;
 }
 
 const W = 760;
 const H = 420;
-const CX = 300;
-const CY = 210;
-const RX = 190;
-const RY = 78;
-const TRAIL_LEN = 40;
+const TRAIL_LEN = 50;
+
+// Flight-path drawing area (separate from the altitude tape on the right)
+const PATH_X_START = 60;
+const PATH_X_END = 660;
+const PATH_Y_TOP = 60;     // screen y for the highest altitude shown on the path
+const PATH_Y_BOTTOM = 340; // screen y for minAltitude / ground
+
+// Phase boundaries as a fraction of one full cycle (0..1). Cruise gets the
+// largest share of the loop, matching a real mission profile.
+const CLIMB_END = 0.30;
+const CRUISE_END = 0.72;
+// descend runs from CRUISE_END -> 1.0, and altitude(1.0) === altitude(0.0)
+// (both are minAltitude), so the loop is continuous in altitude — only the
+// horizontal position resets, which is faded out/in (see FADE_ZONE below).
+
+const CYCLE_SECONDS = 12; // total time for one climb → cruise → descend loop
+const FADE_ZONE = 0.04;   // fraction of the cycle used to fade the aircraft out/in at the reset point
 
 const STATUS_COLOR: Record<string, string> = { SAFE: '#22C55E', CAUTION: '#F5A623', CRITICAL: '#EF4444' };
 
 const PLANE_PATH =
   'M4 12 L26 10 L31 2 L35 2 L32 10 L59 10 L67 7 L69 8 L62 12 L69 16 L67 17 L59 14 L32 14 L35 22 L31 22 L26 14 L4 12 Z';
 
+/** Smoothstep easing for natural-looking climb/descend transitions. */
+function smoothstep(t: number): number {
+  const c = Math.max(0, Math.min(1, t));
+  return c * c * (3 - 2 * c);
+}
+
 /**
- * Advanced HUD-style flight profile visualizer: an animated banked orbit
- * with a fading trail, a live altitude tape with min/recommended/ceiling
- * bands, a rotating heading ring, airspeed and vertical-speed readouts, and
- * a pulsing safety-status indicator. Built entirely from SVG + Framer
- * Motion — no heavy external 3D library, so there's no dynamic-import
- * chunk to race or fail to load.
+ * Altitude as a fraction of min..recommended, for a given point in the cycle
+ * (0..1). Climb: min -> recommended (eased). Cruise: holds at recommended
+ * (with a very small wave so it doesn't look frozen). Descend: recommended
+ * -> min (eased). altitude(0) === altitude(1) === minAltitude, so looping
+ * the cycle never produces a vertical jump — only the horizontal position
+ * resets (handled by the opacity fade near the loop boundary).
+ */
+function altitudeFraction(phase: number): number {
+  if (phase < CLIMB_END) {
+    return smoothstep(phase / CLIMB_END);
+  }
+  if (phase < CRUISE_END) {
+    const cruiseT = (phase - CLIMB_END) / (CRUISE_END - CLIMB_END);
+    return 1 + Math.sin(cruiseT * Math.PI * 3) * 0.012; // subtle cruise wobble
+  }
+  const descendT = (phase - CRUISE_END) / (1 - CRUISE_END);
+  return 1 - smoothstep(descendT);
+}
+
+function flightPhaseLabel(phase: number): 'CLIMB' | 'CRUISE' | 'DESCEND' {
+  if (phase < CLIMB_END) return 'CLIMB';
+  if (phase < CRUISE_END) return 'CRUISE';
+  return 'DESCEND';
+}
+
+/**
+ * HUD-style flight profile visualizer showing an explicit climb → cruise →
+ * descend mission profile (instead of a continuously circling/orbiting
+ * aircraft). The aircraft flies left-to-right across the panel once per
+ * cycle: climbing from the operating floor up to the recommended altitude,
+ * holding cruise, then descending back down — then fades out/in briefly to
+ * reset for the next loop. Built entirely from SVG + Framer Motion — no
+ * heavy external 3D library, so there's no dynamic-import chunk to race or
+ * fail to load.
  */
 export default function FlightProfileVisualizer({
   minAltitude, maxAltitude, recommendedAltitude, serviceCeiling,
-  cruiseSpeedMs, rateOfClimbMs, safetyStatus, numEngines,
+  cruiseSpeedMs, rateOfClimbMs, safetyStatus, numEngines, silent = false,
 }: Props) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const angleRef = useRef(0);
-  const trailRef = useRef<{ x: number; y: number; op: number }[]>([]);
+  const tRef = useRef(0);
+  const trailRef = useRef<{ x: number; y: number }[]>([]);
   const [, forceRender] = useState(0);
   const frameSkip = useRef(0);
+  const lastTonePhase = useRef<string | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [scrubValue, setScrubValue] = useState(0);
 
   const domainMax = Math.max(maxAltitude, serviceCeiling, recommendedAltitude, 1) * 1.05;
   const statusColor = STATUS_COLOR[safetyStatus] || '#4FD1C5';
 
+  // Maps a real altitude (m) to the flight-path drawing area's y coordinate.
+  const pathYFor = (alt: number) =>
+    PATH_Y_BOTTOM - (Math.max(0, Math.min(alt, domainMax)) / domainMax) * (PATH_Y_BOTTOM - PATH_Y_TOP);
+
+  // Precompute a static preview of the whole climb-cruise-descend shape so
+  // it can be drawn as a faint reference path behind the animated aircraft.
+  const profilePath = useMemo(() => {
+    const pts: string[] = [];
+    for (let i = 0; i <= 60; i++) {
+      const phase = i / 60;
+      const alt = minAltitude + altitudeFraction(phase) * (recommendedAltitude - minAltitude);
+      const x = PATH_X_START + phase * (PATH_X_END - PATH_X_START);
+      const y = pathYFor(alt);
+      pts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`);
+    }
+    return pts.join(' ');
+  }, [minAltitude, recommendedAltitude, domainMax]);
+
   useAnimationFrame((_, delta) => {
-    const angularSpeed = 0.55; // rad/s
-    angleRef.current += angularSpeed * (delta / 1000);
+    if (paused) return;
+    tRef.current = (tRef.current + delta / 1000) % CYCLE_SECONDS;
     frameSkip.current += 1;
     if (frameSkip.current % 2 === 0) {
-      const angle = angleRef.current;
-      const x = CX + RX * Math.cos(angle);
-      const y = CY + RY * Math.sin(angle);
-      trailRef.current = [...trailRef.current, { x, y, op: 1 }].slice(-TRAIL_LEN);
+      const phase = tRef.current / CYCLE_SECONDS;
+      setScrubValue(phase);
+      const alt = minAltitude + altitudeFraction(phase) * (recommendedAltitude - minAltitude);
+      const x = PATH_X_START + phase * (PATH_X_END - PATH_X_START);
+      const y = pathYFor(alt);
+      trailRef.current = [...trailRef.current, { x, y }].slice(-TRAIL_LEN);
       forceRender((n) => (n + 1) % 100000);
     }
   });
 
-  const angle = angleRef.current;
-  const planeX = CX + RX * Math.cos(angle);
-  const planeY = CY + RY * Math.sin(angle);
-  // pseudo-3D: bank harder and scale smaller on the "far" side of the ellipse
-  const depthT = (Math.sin(angle) + 1) / 2; // 0 = near/front, 1 = far/back
-  const scale = 1.15 - depthT * 0.4;
-  const bank = Math.cos(angle) * 32; // degrees
-  const heading = (angle * 180) / Math.PI + 90;
+  const phase = tRef.current / CYCLE_SECONDS;
+  const currentPhaseLabel = flightPhaseLabel(phase);
+  const altNow = minAltitude + altitudeFraction(phase) * (recommendedAltitude - minAltitude);
+  const planeX = PATH_X_START + phase * (PATH_X_END - PATH_X_START);
+  const planeY = pathYFor(altNow);
+
+  // Pitch angle derived from the actual local slope of the altitude profile
+  // (nose up climbing, level at cruise, nose down descending) rather than a
+  // banked turn — this aircraft is flying a straight profile, not orbiting.
+  const eps = 0.004;
+  const altAhead = minAltitude + altitudeFraction(Math.min(1, phase + eps)) * (recommendedAltitude - minAltitude);
+  const gradient = (altAhead - altNow) / eps; // altitude change per unit phase
+  const pitch = Math.max(-16, Math.min(16, -gradient * 0.00035));
+
+  // Fade the aircraft out just before the loop resets and back in just after,
+  // so the horizontal reset (right edge -> left edge) reads as an
+  // intentional new pass rather than a jump.
+  let opacity = 1;
+  if (phase > 1 - FADE_ZONE) opacity = (1 - phase) / FADE_ZONE;
+  else if (phase < FADE_ZONE) opacity = phase / FADE_ZONE;
+
+  // Vertical-speed HUD reflects the real predicted climb rate while
+  // climbing, an assumed descent rate while descending (the physics engine
+  // does not currently model a planned descent profile), and zero at cruise.
+  const verticalSpeedDisplay =
+    currentPhaseLabel === 'CLIMB' ? rateOfClimbMs :
+    currentPhaseLabel === 'DESCEND' ? -Math.abs(rateOfClimbMs) * 0.6 :
+    0;
 
   const trail = trailRef.current;
 
-  // altitude tape geometry
+  // altitude tape geometry (right-hand instrument, unchanged in concept)
   const tapeX = 700, tapeTop = 30, tapeBottom = 390, tapeH = tapeBottom - tapeTop;
   const yFor = (alt: number) => tapeBottom - (Math.max(0, Math.min(alt, domainMax)) / domainMax) * tapeH;
-  const climbAmplitude = Math.min(30, Math.abs(rateOfClimbMs) * 6 + 4);
-  const climbOffset = Math.sin(angle * 0.6) * climbAmplitude;
-  const currentAltY = yFor(recommendedAltitude) - climbOffset;
+  const currentAltY = yFor(altNow);
 
   const gridColor = isDark ? '#22304A' : '#CBD5E1';
   const bgColor = isDark ? '#0B1220' : '#F7F9FC';
   const cyan = '#4FD1C5';
   const amber = '#F5A623';
+
+  useEffect(() => {
+    if (silent) return;
+    if (lastTonePhase.current === currentPhaseLabel) return;
+    lastTonePhase.current = currentPhaseLabel;
+    playFlightPhaseTone(currentPhaseLabel);
+  }, [currentPhaseLabel, silent]);
 
   const clouds = useMemo(
     () => Array.from({ length: 5 }, (_, i) => ({
@@ -94,9 +191,20 @@ export default function FlightProfileVisualizer({
     []
   );
 
+  const handleScrub = (value: number) => {
+    const next = Math.max(0, Math.min(1, value));
+    tRef.current = next * CYCLE_SECONDS;
+    setScrubValue(next);
+    const alt = minAltitude + altitudeFraction(next) * (recommendedAltitude - minAltitude);
+    const x = PATH_X_START + next * (PATH_X_END - PATH_X_START);
+    const y = pathYFor(alt);
+    trailRef.current = [{ x, y }];
+    forceRender((n) => (n + 1) % 100000);
+  };
+
   return (
-    <div className="w-full rounded-lg overflow-hidden relative" style={{ background: bgColor, height: 420 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full">
+    <div className="w-full rounded-lg overflow-hidden relative" style={{ background: bgColor }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 420 }}>
         <defs>
           <radialGradient id="fpvGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor={cyan} stopOpacity="0.25" />
@@ -109,37 +217,45 @@ export default function FlightProfileVisualizer({
         </defs>
 
         {/* backdrop glow + horizon grid */}
-        <circle cx={CX} cy={CY} r={220} fill="url(#fpvGlow)" />
+        <circle cx={(PATH_X_START + PATH_X_END) / 2} cy={(PATH_Y_TOP + PATH_Y_BOTTOM) / 2} r={220} fill="url(#fpvGlow)" />
         {Array.from({ length: 10 }, (_, i) => (
           <line key={i} x1={0} y1={280 + i * 14} x2={W} y2={280 + i * 14} stroke={gridColor} strokeOpacity={0.15} strokeWidth={1} />
         ))}
 
-        {/* drifting clouds (parallax) */}
+        {/* drifting clouds (parallax, purely decorative, independent of flight phase) */}
         {clouds.map((cl, i) => {
-          const cx = (cl.cx + (angle * cl.speed * 8)) % (W + 60) - 30;
+          const cx = (cl.cx + (tRef.current * cl.speed * 4)) % (W + 60) - 30;
           return <ellipse key={i} cx={cx} cy={cl.cy} rx={cl.r} ry={cl.r * 0.5} fill="#FFFFFF" opacity={0.06} />;
         })}
 
-        {/* orbit path */}
-        <ellipse cx={CX} cy={CY} rx={RX} ry={RY} fill="none" stroke={gridColor} strokeWidth={1.5} strokeDasharray="4 4" />
+        {/* ground line */}
+        <line x1={PATH_X_START - 20} y1={PATH_Y_BOTTOM} x2={PATH_X_END + 20} y2={PATH_Y_BOTTOM} stroke={gridColor} strokeWidth={1.5} opacity={0.5} />
 
-        {/* fading trail */}
-        {trail.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={1.6} fill={cyan} opacity={(i / trail.length) * 0.5} />
-        ))}
+        {/* static preview of the full climb-cruise-descend profile */}
+        <path d={profilePath} fill="none" stroke={gridColor} strokeWidth={1.5} strokeDasharray="4 4" opacity={0.6} />
 
-        {/* waypoint markers on orbit */}
-        {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((a, i) => (
-          <circle key={i} cx={CX + RX * Math.cos(a)} cy={CY + RY * Math.sin(a)} r={3} fill="none" stroke={amber} strokeWidth={1.5} opacity={0.6} />
+        {/* departure / destination markers */}
+        <g transform={`translate(${PATH_X_START}, ${PATH_Y_BOTTOM})`}>
+          <circle r={3.5} fill={gridColor} />
+          <text y={18} textAnchor="middle" fontSize={8} fontFamily="monospace" fill={gridColor}>DEPARTURE</text>
+        </g>
+        <g transform={`translate(${PATH_X_END}, ${PATH_Y_BOTTOM})`}>
+          <circle r={3.5} fill={gridColor} />
+          <text y={18} textAnchor="middle" fontSize={8} fontFamily="monospace" fill={gridColor}>DESTINATION</text>
+        </g>
+
+        {/* fading trail behind the aircraft */}
+        {trail.map((pt, i) => (
+          <circle key={i} cx={pt.x} cy={pt.y} r={1.6} fill={cyan} opacity={(i / trail.length) * 0.5 * opacity} />
         ))}
 
         {/* aircraft */}
-        <g transform={`translate(${planeX}, ${planeY}) rotate(${heading}) scale(${scale})`}>
-          <g transform={`rotate(${bank})`}>
+        <g transform={`translate(${planeX}, ${planeY})`} opacity={opacity}>
+          <g transform={`rotate(${pitch})`}>
             <path d={PLANE_PATH} fill={cyan} opacity={0.95} transform="translate(-36,-12)" />
           </g>
           {/* engine glow, pulses with safety status */}
-          <circle r={4 + depthT * 2} fill={statusColor} opacity={0.5}>
+          <circle r={5} fill={statusColor} opacity={0.5}>
             <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.8s" repeatCount="indefinite" />
           </circle>
         </g>
@@ -169,35 +285,31 @@ export default function FlightProfileVisualizer({
           </g>
         </g>
 
-        {/* HUD: airspeed */}
+        {/* HUD: flight phase (new — replaces the old orbit heading readout as the primary status) */}
         <g transform="translate(16,16)">
+          <text fontSize={9} fontFamily="monospace" fill={gridColor}>FLIGHT PHASE</text>
+          <text y={18} fontSize={16} fontFamily="monospace" fill={cyan} fontWeight="bold">{currentPhaseLabel}</text>
+        </g>
+
+        {/* HUD: airspeed */}
+        <g transform="translate(16,58)">
           <text fontSize={9} fontFamily="monospace" fill={gridColor}>AIRSPEED</text>
-          <text y={18} fontSize={18} fontFamily="monospace" fill={cyan} fontWeight="bold">{cruiseSpeedMs.toFixed(1)}</text>
-          <text x={62} y={18} fontSize={9} fontFamily="monospace" fill={gridColor}>m/s</text>
+          <text y={18} fontSize={14} fontFamily="monospace" fill={cyan} fontWeight="bold">{cruiseSpeedMs.toFixed(1)} m/s</text>
         </g>
 
         {/* HUD: vertical speed */}
-        <g transform="translate(16,50)">
+        <g transform="translate(16,92)">
           <text fontSize={9} fontFamily="monospace" fill={gridColor}>VERT SPEED</text>
-          <text y={18} fontSize={14} fontFamily="monospace" fill={rateOfClimbMs >= 0 ? '#22C55E' : '#EF4444'} fontWeight="bold">
-            {rateOfClimbMs >= 0 ? '+' : ''}{rateOfClimbMs.toFixed(2)} m/s
+          <text y={18} fontSize={13} fontFamily="monospace" fill={verticalSpeedDisplay >= 0 ? '#22C55E' : '#EF4444'} fontWeight="bold">
+            {verticalSpeedDisplay >= 0 ? '+' : ''}{verticalSpeedDisplay.toFixed(2)} m/s
           </text>
         </g>
 
-        {/* HUD: heading ring (top right) */}
-        <g transform={`translate(${W - 60}, 60)`}>
-          <circle r={34} fill="none" stroke={gridColor} strokeWidth={1} opacity={0.5} />
-          <g transform={`rotate(${-heading})`}>
-            <text y={-24} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={amber}>N</text>
-            <text x={24} y={4} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={gridColor}>E</text>
-            <text y={30} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={gridColor}>S</text>
-            <text x={-24} y={4} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={gridColor}>W</text>
-          </g>
-          <polygon points="0,-8 -5,4 5,4" fill={cyan} />
+        {/* HUD: altitude now */}
+        <g transform="translate(16,126)">
+          <text fontSize={9} fontFamily="monospace" fill={gridColor}>ALTITUDE</text>
+          <text y={18} fontSize={13} fontFamily="monospace" fill={gridColor}>{Math.round(altNow)} m</text>
         </g>
-        <text x={W - 60} y={112} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={gridColor}>
-          HDG {Math.round(((heading % 360) + 360) % 360)}°
-        </text>
 
         {/* HUD: safety status */}
         <g transform={`translate(${W - 130}, ${H - 34})`}>
@@ -209,9 +321,31 @@ export default function FlightProfileVisualizer({
 
         {/* HUD: engine count */}
         <text x={16} y={H - 16} fontSize={9} fontFamily="monospace" fill={gridColor}>
-          {numEngines}× ENGINE{numEngines !== 1 ? 'S' : ''} NOMINAL
+          {numEngines}\u00d7 ENGINE{numEngines !== 1 ? 'S' : ''} NOMINAL
         </text>
       </svg>
+      <div className="px-4 pb-4 -mt-2 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setPaused((v) => !v)}
+          className="px-3 py-2 rounded-md border border-slate-300/50 text-xs font-mono text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition"
+        >
+          {paused ? 'PLAY' : 'PAUSE'}
+        </button>
+        <input
+          aria-label="Flight replay timeline"
+          type="range"
+          min={0}
+          max={1000}
+          value={Math.round(scrubValue * 1000)}
+          onChange={(event) => handleScrub(Number(event.target.value) / 1000)}
+          onPointerDown={() => setPaused(true)}
+          className="flex-1 accent-teal-500"
+        />
+        <span className="min-w-[72px] text-right text-xs font-mono font-semibold" style={{ color: cyan }}>
+          {currentPhaseLabel}
+        </span>
+      </div>
     </div>
   );
 }

@@ -349,6 +349,7 @@ class MissionComputeResponse(BaseModel):
 class ReportRequest(BaseModel):
     input: UAVInput
     mission: Optional[MissionComputeResponse] = None
+    flight_profile_image: Optional[str] = None
     include_failure_analysis: bool = True
     include_optimization: bool = True
 

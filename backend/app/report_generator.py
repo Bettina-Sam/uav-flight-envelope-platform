@@ -13,6 +13,7 @@ analysis, safety warnings, and page numbers with a consistent footer.
 
 import io
 import csv
+import base64
 from datetime import datetime
 
 
@@ -89,7 +90,8 @@ def _header_footer(canvas, doc):
 def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, comparison: list,
                       local_explanation: dict = None, optimize_range: list = None,
                       optimize_endurance: list = None, failure_results: list = None,
-                      design_score: dict = None, mission: dict = None) -> bytes:
+                      design_score: dict = None, mission: dict = None,
+                      flight_profile_image: str = None) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=20 * mm, bottomMargin=18 * mm,
                              leftMargin=18 * mm, rightMargin=18 * mm)
@@ -203,6 +205,18 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
             "No mission was planned for this report. Visit the Mission Planner to lay down waypoints, "
             "compute a terrain-aware cruise altitude and energy budget, and regenerate this report to "
             "include it here.", body))
+
+    if flight_profile_image:
+        try:
+            image_payload = flight_profile_image.split(",", 1)[1] if "," in flight_profile_image else flight_profile_image
+            image_bytes = base64.b64decode(image_payload)
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("<b>Climb / Cruise / Descend Flight Profile</b>", body))
+            elements.append(Spacer(1, 4))
+            elements.append(Image(io.BytesIO(image_bytes), width=170 * mm, height=96 * mm))
+        except Exception:
+            elements.append(Spacer(1, 6))
+            elements.append(Paragraph("Flight profile image could not be embedded in this report.", small))
 
     # --- 3. Physics engine results ---
     elements.append(Paragraph("3. Physics Engine Results", h2))

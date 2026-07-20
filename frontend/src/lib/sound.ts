@@ -74,3 +74,23 @@ export function playSafetyTone(status: 'SAFE' | 'CAUTION' | 'CRITICAL') {
   else if (status === 'CAUTION') playCaution();
   else playCritical();
 }
+
+export function playFlightPhaseTone(phase: 'CLIMB' | 'CRUISE' | 'DESCEND') {
+  if (!isSoundEnabled()) return;
+  const audio = getCtx();
+  if (!audio) return;
+  if (audio.state === 'suspended') audio.resume();
+
+  if (phase === 'CLIMB') {
+    tone(420, 0, 0.18, 0.035, 'triangle');
+    tone(560, 0.12, 0.18, 0.035, 'triangle');
+    tone(720, 0.24, 0.2, 0.035, 'triangle');
+  } else if (phase === 'CRUISE') {
+    tone(310, 0, 0.32, 0.025, 'sine');
+    tone(320, 0.18, 0.34, 0.02, 'sine');
+  } else {
+    tone(720, 0, 0.18, 0.035, 'triangle');
+    tone(560, 0.12, 0.18, 0.035, 'triangle');
+    tone(420, 0.24, 0.2, 0.035, 'triangle');
+  }
+}
