@@ -319,6 +319,21 @@ def _run_ml(uav: physics.UAVConfig) -> dict:
         reg_vals[k] = max(0.0, reg_vals[k])
     for k in ["power_required_w", "lift_n", "drag_n", "range_km", "endurance_hr", "l_over_d"]:
         reg_vals[k] = max(0.0, reg_vals[k])
+
+    if physics.uses_fuel(uav):
+        fuel_capacity_l = float(getattr(uav, "sampled_fuel_capacity_l", 0.0) or 0.0)
+        sfc = float(getattr(uav, "sampled_sfc", 0.0) or 0.0)
+        ml_l_over_d = max(reg_vals.get("l_over_d", 0.0), 1e-6)
+        fuel_mass_kg = fuel_capacity_l * physics.FUEL_DENSITY_KG_PER_L
+        reserve_fuel_kg = fuel_mass_kg * 0.20
+        takeoff_mass_kg = uav.mass_kg + fuel_mass_kg
+        landing_mass_kg = uav.mass_kg + reserve_fuel_kg
+        ct = sfc * physics.G0
+        if ct > 0 and takeoff_mass_kg > landing_mass_kg > 0:
+            ml_endurance_hr = (1.0 / ct) * ml_l_over_d * math.log(takeoff_mass_kg / landing_mass_kg) / 3600.0
+            reg_vals["endurance_hr"] = max(0.0, ml_endurance_hr)
+            reg_vals["range_km"] = max(0.0, uav.cruise_speed_ms * 3.6 * ml_endurance_hr)
+
     # keep min <= recommended <= max <= absolute_ceiling ordering sane for display
     if reg_vals["max_altitude_m"] < reg_vals["min_altitude_m"]:
         reg_vals["max_altitude_m"] = reg_vals["min_altitude_m"]
@@ -1223,6 +1238,7 @@ def mission_compute(req: MissionComputeRequest):
     perf = physics.evaluate_altitude(uav, cruise_altitude)
     eta = physics.prop_efficiency_at_altitude(uav, perf.sigma)
     p_elec_w = perf.power_required_w / max(eta, 1e-6)
+    fuel_mode = physics.uses_fuel(uav)
 
     waypoint_results = [
         MissionWaypointResult(index=i, lat=w.lat, lon=w.lon, terrain_elevation_m=elevations[i],
@@ -1245,6 +1261,15 @@ def mission_compute(req: MissionComputeRequest):
     usable_energy = req.input.battery_wh * (1 - battery_reserve_frac)
     battery_margin_pct = (((usable_energy - total_energy) / req.input.battery_wh) * 100
                            if req.input.battery_wh else 0.0)
+    fuel_capacity_l = req.input.fuel_capacity_l if fuel_mode else None
+    usable_fuel_l = fuel_capacity_l * (1 - battery_reserve_frac) if fuel_capacity_l is not None else None
+    total_fuel_kg = physics.breguet_fuel_used_for_range_kg(uav, perf, total_distance, battery_reserve_frac) if fuel_mode else 0.0
+    total_fuel_l = total_fuel_kg / physics.FUEL_DENSITY_KG_PER_L if fuel_mode else None
+    fuel_margin_pct = (
+        ((usable_fuel_l - total_fuel_l) / fuel_capacity_l) * 100
+        if fuel_mode and fuel_capacity_l and total_fuel_l is not None and usable_fuel_l is not None
+        else None
+    )
 
     warnings = []
     if terrain_conflict:
@@ -1253,7 +1278,13 @@ def mission_compute(req: MissionComputeRequest):
             f"exceeds this aircraft's service ceiling ({physics_result['service_ceiling_m']:.0f} m). "
             "Reduce payload/mass, increase motor power, or re-route away from high terrain."
         )
-    if total_energy > usable_energy:
+    if fuel_mode and usable_fuel_l is not None and total_fuel_l is not None and total_fuel_l > usable_fuel_l:
+        warnings.append(
+            f"Estimated mission fuel ({total_fuel_l:.1f} L) exceeds usable fuel capacity "
+            f"({usable_fuel_l:.1f} L, after a 20% reserve) - this mission is not flyable as planned. "
+            "Add fuel capacity, shorten the route, reduce drag, or reduce cruise speed."
+        )
+    elif not fuel_mode and total_energy > usable_energy:
         warnings.append(
             f"Estimated mission energy ({total_energy:.0f} Wh) exceeds usable battery capacity "
             f"({usable_energy:.0f} Wh, after a 20% reserve) - this mission is not flyable as planned. "
@@ -1275,6 +1306,12 @@ def mission_compute(req: MissionComputeRequest):
         total_distance_km=total_distance,
         mission_duration_hr=total_time,
         total_energy_wh=total_energy,
+        total_fuel_used_kg=total_fuel_kg if fuel_mode else None,
+        total_fuel_used_l=total_fuel_l,
+        fuel_capacity_l=fuel_capacity_l,
+        fuel_usable_l=usable_fuel_l,
+        fuel_margin_pct=fuel_margin_pct,
+        energy_source="fuel" if fuel_mode else "battery",
         battery_capacity_wh=req.input.battery_wh,
         battery_usable_wh=usable_energy,
         battery_margin_pct=battery_margin_pct,

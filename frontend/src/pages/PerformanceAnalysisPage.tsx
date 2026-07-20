@@ -17,10 +17,14 @@ const ALTITUDE_PARAMS = [
   { key: 'l_over_d' as const, label: 'Lift-to-Drag (L/D)', min: 5, max: 30 },
   { key: 'cruise_speed_ms' as const, label: 'Cruise Speed (m/s)', min: 8, max: 70 },
   { key: 'thrust_to_weight' as const, label: 'Thrust-to-Weight', min: 0.01, max: 0.5 },
+  { key: 'fuel_capacity_l' as const, label: 'Fuel Capacity (L)', min: 0, max: 5000 },
+  { key: 'sfc_kg_per_n_s' as const, label: 'SFC (kg/N*s)', min: 0.000003, max: 0.00002 },
   { key: 'mass_kg' as const, label: 'Mass (kg)', min: 7, max: 3000 },
 ];
 
 const RANGE_PARAMS = [
+  { key: 'fuel_capacity_l' as const, label: 'Fuel Capacity (L)', min: 0, max: 5000 },
+  { key: 'sfc_kg_per_n_s' as const, label: 'SFC (kg/N*s)', min: 0.000003, max: 0.00002 },
   { key: 'battery_wh' as const, label: 'Battery Capacity (Wh)', min: 100, max: 150000 },
   { key: 'mass_kg' as const, label: 'Mass (kg)', min: 7, max: 3000 },
   { key: 'cd0' as const, label: 'CD0', min: 0.006, max: 0.08 },
@@ -29,6 +33,8 @@ const RANGE_PARAMS = [
 ];
 
 const ENDURANCE_PARAMS = [
+  { key: 'fuel_capacity_l' as const, label: 'Fuel Capacity (L)', min: 0, max: 5000 },
+  { key: 'sfc_kg_per_n_s' as const, label: 'SFC (kg/N*s)', min: 0.000003, max: 0.00002 },
   { key: 'battery_wh' as const, label: 'Battery Capacity (Wh)', min: 100, max: 150000 },
   { key: 'mass_kg' as const, label: 'Mass (kg)', min: 7, max: 3000 },
   { key: 'l_over_d' as const, label: 'Lift-to-Drag (L/D)', min: 5, max: 30 },

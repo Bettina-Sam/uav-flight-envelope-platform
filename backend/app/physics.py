@@ -359,7 +359,8 @@ def _select_recommended_altitude(uav: UAVConfig, profile: list, service_ceiling:
       1. Aerodynamic efficiency  (L/D, normalized)      weight 0.35
       2. Climb-rate safety margin (ROC, normalized)      weight 0.30
       3. Power margin  ((P_avail-P_req)/P_avail)         weight 0.20
-      4. Endurance proxy (lower P_req -> longer flight)  weight 0.15
+      4. Endurance proxy (fuel: lower drag/fuel burn; electric: lower P_req)
+                                                           weight 0.15
 
     The altitude with the highest composite score is recommended. This
     means the recommendation shifts with the aircraft's actual physics
@@ -380,7 +381,7 @@ def _select_recommended_altitude(uav: UAVConfig, profile: list, service_ceiling:
     ld_vals = [p.l_over_d for p in candidates]
     roc_vals = [p.rate_of_climb_ms for p in candidates]
     margin_vals = [(p.power_available_w - p.power_required_w) / p.power_available_w for p in candidates]
-    preq_vals = [p.power_required_w for p in candidates]
+    endurance_proxy_vals = [p.drag_n if uses_fuel(uav) else p.power_required_w for p in candidates]
 
     def norm(vals, v):
         lo, hi = min(vals), max(vals)
@@ -397,30 +398,115 @@ def _select_recommended_altitude(uav: UAVConfig, profile: list, service_ceiling:
             0.35 * norm(ld_vals, p.l_over_d) +
             0.30 * norm(roc_vals, p.rate_of_climb_ms) +
             0.20 * norm(margin_vals, (p.power_available_w - p.power_required_w) / p.power_available_w) +
-            0.15 * norm_inv(preq_vals, p.power_required_w)
+            0.15 * norm_inv(endurance_proxy_vals, p.drag_n if uses_fuel(uav) else p.power_required_w)
         )
         if score > best_score:
             best_score = score
             best = p
 
+    endurance_basis = (
+        f"Breguet fuel endurance (L/D={best.l_over_d:.2f}, fuel={getattr(uav, 'sampled_fuel_capacity_l', 0.0):.1f} L)"
+        if uses_fuel(uav)
+        else f"electric endurance (P_req={best.power_required_w:.1f} W)"
+    )
     reason = (
         f"Selected at {best.altitude_m:.0f} m: best composite score of aerodynamic "
         f"efficiency (L/D={best.l_over_d:.2f}), climb-rate safety margin "
         f"(ROC={best.rate_of_climb_ms:.2f} m/s), power margin "
         f"({(best.power_available_w - best.power_required_w) / best.power_available_w * 100:.1f}% spare), "
-        f"and endurance (P_req={best.power_required_w:.1f} W), restricted to altitudes "
+        f"and {endurance_basis}, restricted to altitudes "
         f"at or below the service ceiling ({service_ceiling:.0f} m) for safety."
     )
     return best.altitude_m, reason
 
 
 # ---------------------------------------------------------------------------
-# 6. ENDURANCE AND RANGE (electric propulsion)
+# 6. ENDURANCE AND RANGE
 # ---------------------------------------------------------------------------
 
-def endurance_hours(uav: UAVConfig, perf: AltitudePerformance, battery_reserve_frac: float = 0.20) -> float:
+FUEL_DENSITY_KG_PER_L = 0.80
+
+
+def uses_fuel(uav: UAVConfig) -> bool:
+    return (
+        float(getattr(uav, "sampled_fuel_capacity_l", 0.0) or 0.0) > 0.0
+        and float(getattr(uav, "sampled_sfc", 0.0) or 0.0) > 0.0
+    )
+
+
+def fuel_flow_kg_s(uav: UAVConfig, perf: AltitudePerformance) -> float:
     """
-    Endurance (hours) for an ELECTRIC aircraft:
+    Thrust-specific fuel consumption model.
+    SFC is kg / (N*s); in steady level cruise, thrust required ~= drag.
+    """
+    sfc = float(getattr(uav, "sampled_sfc", 0.0) or 0.0)
+    return max(0.0, sfc * max(perf.drag_n, 0.0))
+
+
+def fuel_masses_kg(uav: UAVConfig, fuel_reserve_frac: float = 0.20) -> tuple[float, float, float]:
+    fuel_mass_kg = float(getattr(uav, "sampled_fuel_capacity_l", 0.0) or 0.0) * FUEL_DENSITY_KG_PER_L
+    reserve_fuel_kg = fuel_mass_kg * fuel_reserve_frac
+    usable_fuel_kg = max(0.0, fuel_mass_kg - reserve_fuel_kg)
+    return fuel_mass_kg, reserve_fuel_kg, usable_fuel_kg
+
+
+def breguet_endurance_hours(uav: UAVConfig, perf: AltitudePerformance, fuel_reserve_frac: float = 0.20) -> float:
+    """
+    Breguet endurance for fuel aircraft:
+        E = (1 / Ct) * (L / D) * ln(W_takeoff / W_landing)
+
+    Input SFC is mass based, kg/(N*s). Convert to weight based 1/s via Ct = SFC * g.
+    Weight ratio can be computed from masses because g cancels.
+    """
+    sfc_mass = float(getattr(uav, "sampled_sfc", 0.0) or 0.0)
+    ct = sfc_mass * G0
+    fuel_mass_kg, reserve_fuel_kg, usable_fuel_kg = fuel_masses_kg(uav, fuel_reserve_frac)
+    base_mass_kg = max(0.0, uav.mass_kg)
+    takeoff_mass_kg = base_mass_kg + fuel_mass_kg
+    landing_mass_kg = base_mass_kg + reserve_fuel_kg
+    if ct <= 0 or perf.l_over_d <= 0 or usable_fuel_kg <= 0 or landing_mass_kg <= 0:
+        return 0.0
+    weight_ratio = max(1.0, takeoff_mass_kg / landing_mass_kg)
+    endurance_seconds = (1.0 / ct) * perf.l_over_d * math.log(weight_ratio)
+    return max(0.0, endurance_seconds / 3600.0)
+
+
+def breguet_fuel_used_for_range_kg(
+    uav: UAVConfig,
+    perf: AltitudePerformance,
+    range_km_value: float,
+    fuel_reserve_frac: float = 0.20,
+) -> float:
+    """
+    Inverted Breguet range equation:
+        R = (V / Ct) * (L / D) * ln(Wi / Wf)
+        Wf = Wi / exp(R * Ct / (V * L/D))
+    """
+    sfc_mass = float(getattr(uav, "sampled_sfc", 0.0) or 0.0)
+    ct = sfc_mass * G0
+    fuel_mass_kg, _, usable_fuel_kg = fuel_masses_kg(uav, fuel_reserve_frac)
+    takeoff_mass_kg = max(0.0, uav.mass_kg) + fuel_mass_kg
+    if ct <= 0 or perf.velocity_ms <= 0 or perf.l_over_d <= 0 or takeoff_mass_kg <= 0 or range_km_value <= 0:
+        return 0.0
+    exponent = (range_km_value * 1000.0) * ct / (perf.velocity_ms * perf.l_over_d)
+    final_mass_kg = takeoff_mass_kg / math.exp(max(0.0, exponent))
+    return max(0.0, min(usable_fuel_kg, takeoff_mass_kg - final_mass_kg))
+
+
+def endurance_hours(
+    uav: UAVConfig,
+    perf: AltitudePerformance,
+    battery_reserve_frac: float = 0.20,
+    fuel_reserve_frac: float = 0.20,
+) -> float:
+    """
+    Endurance (hours).
+
+    Fuel aircraft:
+        fuel_flow = SFC * drag
+        endurance = usable_fuel_mass / fuel_flow
+
+    Electric aircraft:
         E = (Battery_Energy_Wh * (1 - reserve) ) / P_req_electrical
 
     P_req_electrical = P_req_aero / eta_prop(altitude), i.e. we need to
@@ -429,12 +515,15 @@ def endurance_hours(uav: UAVConfig, perf: AltitudePerformance, battery_reserve_f
     battery_reserve_frac reserves a safety margin of battery capacity
     (standard practice - never plan to fully deplete the pack).
     """
-    eta = prop_efficiency_at_altitude(uav, perf.sigma)
-    p_elec = perf.power_required_w / max(eta, 1e-6)
-    usable_energy_wh = uav.battery_energy_wh * (1 - battery_reserve_frac)
-    if p_elec <= 0:
-        return 0.0
-    return usable_energy_wh / p_elec
+    if uses_fuel(uav):
+        return breguet_endurance_hours(uav, perf, fuel_reserve_frac)
+    else:
+        eta = prop_efficiency_at_altitude(uav, perf.sigma)
+        p_elec = perf.power_required_w / max(eta, 1e-6)
+        usable_energy_wh = uav.battery_energy_wh * (1 - battery_reserve_frac)
+        if p_elec <= 0:
+            return 0.0
+        return usable_energy_wh / p_elec
 
 
 def range_km(perf: AltitudePerformance, endurance_h: float) -> float:

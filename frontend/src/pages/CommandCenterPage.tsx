@@ -16,6 +16,9 @@ import { drawFlightCard } from '../lib/flightCard';
 
 const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; step: number; unit: string }[] = [
   { key: 'mass_kg', label: 'Mass', min: 7, max: 3000, step: 1, unit: 'kg' },
+  { key: 'fuel_capacity_l', label: 'Fuel Capacity', min: 0, max: 5000, step: 5, unit: 'L' },
+  { key: 'sfc_kg_per_n_s', label: 'SFC', min: 0.000003, max: 0.00002, step: 0.0000005, unit: 'kg/N*s' },
+  { key: 'thrust_to_weight', label: 'Thrust-to-Weight', min: 0.05, max: 1.2, step: 0.01, unit: '' },
   { key: 'battery_wh', label: 'Battery (Wh)', min: 100, max: 150000, step: 100, unit: 'Wh' },
   { key: 'wing_area_m2', label: 'Wing Area', min: 0.3, max: 25, step: 0.1, unit: 'm²' },
   { key: 'cd0', label: 'CD0', min: 0.006, max: 0.08, step: 0.001, unit: '' },
@@ -28,7 +31,7 @@ const FUEL_DENSITY_KG_PER_L = 0.8;
 function FuelGauge({ capacityL, estimatedBurnKgHr }: { capacityL: number; estimatedBurnKgHr: number }) {
   const capped = Math.max(0, Math.min(1, capacityL / 500));
   const angle = -100 + capped * 200;
-  const reserveHours = estimatedBurnKgHr > 0 ? (capacityL * FUEL_DENSITY_KG_PER_L) / estimatedBurnKgHr : 0;
+  const reserveHours = estimatedBurnKgHr > 0 ? (capacityL * FUEL_DENSITY_KG_PER_L * 0.8) / estimatedBurnKgHr : 0;
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-2">
@@ -44,10 +47,20 @@ function FuelGauge({ capacityL, estimatedBurnKgHr }: { capacityL: number; estima
         <text x="134" y="108" fontSize="10" fontFamily="monospace" fill="#8A9BB5">500L+</text>
       </svg>
       <div className="text-center text-[11px] text-muted">
-        Est. fuel endurance: <span className="font-mono text-text">{reserveHours.toFixed(1)} hr</span>
+        Breguet fuel endurance: <span className="font-mono text-text">{reserveHours.toFixed(1)} hr</span>
       </div>
     </div>
   );
+}
+
+function sliderValue(input: UAVInput, key: keyof UAVInput) {
+  const value = input[key] as number | string;
+  if (typeof value !== 'number') return value;
+  if (key === 'sfc_kg_per_n_s') return value.toExponential(2);
+  if (key === 'cd0' || key === 'thrust_to_weight' || key === 'propulsion_efficiency') {
+    return value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  }
+  return value;
 }
 
 export default function CommandCenterPage() {
@@ -120,7 +133,7 @@ export default function CommandCenterPage() {
 
   const p = liveResult.physics;
   const tapasRangePct = (p.range_km / TAPAS_BASELINE_RANGE_KM) * 100;
-  const fuelBurnKgHr = liveInput.sfc_kg_per_n_s * p.drag_n * 3600;
+  const fuelBurnKgHr = p.endurance_hr > 0 ? (liveInput.fuel_capacity_l * FUEL_DENSITY_KG_PER_L * 0.8) / p.endurance_hr : 0;
   const fuelConfig = liveInput.fuel_capacity_l > 0 || liveInput.sfc_kg_per_n_s > 0;
 
   return (
@@ -223,7 +236,7 @@ export default function CommandCenterPage() {
             <div key={s.key}>
               <div className="flex justify-between text-[10px] font-mono text-muted mb-1.5">
                 <span>{s.label}</span>
-                <span className="text-cyan">{liveInput[s.key]} {s.unit}</span>
+                <span className="text-cyan">{sliderValue(liveInput, s.key)} {s.unit}</span>
               </div>
               <input
                 type="range" min={s.min} max={s.max} step={s.step}

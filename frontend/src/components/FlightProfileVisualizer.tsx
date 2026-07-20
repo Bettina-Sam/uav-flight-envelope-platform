@@ -38,9 +38,6 @@ const FADE_ZONE = 0.04;   // fraction of the cycle used to fade the aircraft out
 
 const STATUS_COLOR: Record<string, string> = { SAFE: '#22C55E', CAUTION: '#F5A623', CRITICAL: '#EF4444' };
 
-const PLANE_PATH =
-  'M4 12 L26 10 L31 2 L35 2 L32 10 L59 10 L67 7 L69 8 L62 12 L69 16 L67 17 L59 14 L32 14 L35 22 L31 22 L26 14 L4 12 Z';
-
 /** Smoothstep easing for natural-looking climb/descend transitions. */
 function smoothstep(t: number): number {
   const c = Math.max(0, Math.min(1, t));
@@ -214,6 +211,18 @@ export default function FlightProfileVisualizer({
             <stop offset="0%" stopColor="#22C55E" stopOpacity="0.15" />
             <stop offset="100%" stopColor="#22C55E" stopOpacity="0.4" />
           </linearGradient>
+          <linearGradient id="fpvPlaneBody" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#0D9488" />
+            <stop offset="55%" stopColor={cyan} />
+            <stop offset="100%" stopColor="#A7F3D0" />
+          </linearGradient>
+          <linearGradient id="fpvWing" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#DDFCF7" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#14B8A6" stopOpacity="0.9" />
+          </linearGradient>
+          <filter id="fpvSoftShadow" x="-40%" y="-60%" width="180%" height="220%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000000" floodOpacity={isDark ? 0.45 : 0.22} />
+          </filter>
         </defs>
 
         {/* backdrop glow + horizon grid */}
@@ -251,11 +260,20 @@ export default function FlightProfileVisualizer({
 
         {/* aircraft */}
         <g transform={`translate(${planeX}, ${planeY})`} opacity={opacity}>
-          <g transform={`rotate(${pitch})`}>
-            <path d={PLANE_PATH} fill={cyan} opacity={0.95} transform="translate(-36,-12)" />
+          <path d="M-48 0 C-34 -7 -18 -9 -2 -8" fill="none" stroke={statusColor} strokeWidth={3} strokeLinecap="round" opacity={0.22}>
+            <animate attributeName="stroke-dasharray" values="2 10;10 4;2 10" dur="1.4s" repeatCount="indefinite" />
+          </path>
+          <g transform={`rotate(${pitch})`} filter="url(#fpvSoftShadow)">
+            <path d="M-38 -4 L8 -4 L31 0 L8 4 L-38 4 L-27 0 Z" fill="url(#fpvPlaneBody)" stroke={cyan} strokeWidth={1} />
+            <path d="M-8 -4 L-25 -24 L-13 -24 L14 -4 Z" fill="url(#fpvWing)" stroke={cyan} strokeWidth={0.8} />
+            <path d="M-8 4 L-25 24 L-13 24 L14 4 Z" fill="url(#fpvWing)" stroke={cyan} strokeWidth={0.8} opacity={0.82} />
+            <path d="M-30 -4 L-43 -15 L-35 -15 L-20 -4 Z" fill="#2DD4BF" opacity={0.8} />
+            <path d="M-30 4 L-43 15 L-35 15 L-20 4 Z" fill="#14B8A6" opacity={0.72} />
+            <ellipse cx="12" cy="-1.5" rx="5.5" ry="2.2" fill="#E0F2FE" opacity={0.88} />
+            <circle cx="31" cy="0" r="2.2" fill="#ECFEFF" />
           </g>
           {/* engine glow, pulses with safety status */}
-          <circle r={5} fill={statusColor} opacity={0.5}>
+          <circle cx="-35" cy="0" r={5} fill={statusColor} opacity={0.5}>
             <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.8s" repeatCount="indefinite" />
           </circle>
         </g>

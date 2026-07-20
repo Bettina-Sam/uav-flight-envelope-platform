@@ -107,6 +107,7 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
     status = physics_result.get("safety_status", "SAFE")
     status_color = STATUS_COLOR.get(status, BRAND_AMBER)
     n_engines = int(uav_input.get("num_engines", 1))
+    propulsion_label = "fuel-powered" if uav_input.get("fuel_capacity_l", 0) and uav_input.get("sfc_kg_per_n_s", 0) else "electric"
 
     elements = []
 
@@ -131,7 +132,7 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
     elements.append(Spacer(1, 4))
     elements.append(Paragraph(
         f"Generated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} \u00b7 "
-        f"{'Twin-Engine' if n_engines == 2 else str(n_engines) + '-Engine'} fixed-wing electric UAV", small))
+        f"{'Twin-Engine' if n_engines == 2 else str(n_engines) + '-Engine'} fixed-wing {propulsion_label} UAV", small))
 
     # --- Executive summary ---
     elements.append(Paragraph("Executive Summary", h2))
@@ -149,10 +150,16 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
             f"combining safety status, aerodynamic efficiency, power margin, and ML-model reliability."
         )
     if mission:
+        mission_source = mission.get("energy_source", "battery")
+        margin_text = (
+            f"with a {mission.get('fuel_margin_pct', 0):.0f}% fuel margin."
+            if mission_source == "fuel"
+            else f"with a {mission.get('battery_margin_pct', 0):.0f}% battery margin."
+        )
         summary_bits.append(
             f"A {len(mission.get('waypoints', []))}-waypoint mission was planned covering "
             f"{mission.get('total_distance_km', 0):.1f} km in {mission.get('mission_duration_hr', 0) * 60:.0f} min, "
-            f"with a {mission.get('battery_margin_pct', 0):.0f}% battery margin."
+            f"{margin_text}"
         )
     elements.append(Paragraph(" ".join(summary_bits), body))
 
@@ -160,7 +167,7 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
     elements.append(Paragraph("1. UAV Configuration", h2))
     engine_label = "Twin-Engine" if n_engines == 2 else ("Single-Engine" if n_engines == 1 else f"{n_engines}-Engine")
     elements.append(Paragraph(
-        f"<b>{engine_label} fixed-wing electric UAV</b> \u00b7 Total mass {uav_input.get('mass_kg')} kg "
+        f"<b>{engine_label} fixed-wing {propulsion_label} UAV</b> \u00b7 Total mass {uav_input.get('mass_kg')} kg "
         f"\u00b7 Cruise speed {uav_input.get('cruise_speed_ms')} m/s \u00b7 "
         f"Total power {uav_input.get('motor_max_power_w', 0) * n_engines:.0f} W "
         f"({uav_input.get('motor_max_power_w')} W \u00d7 {n_engines} engine{'s' if n_engines != 1 else ''})",
@@ -181,10 +188,15 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
             ["Mission duration (min)", _fmt(mission.get("mission_duration_hr", 0) * 60)],
             ["Cruise altitude (m)", _fmt(mission.get("cruise_altitude_m"))],
             ["Mission floor / min safe altitude (m)", _fmt(mission.get("mission_floor_m"))],
-            ["Total energy required (Wh)", _fmt(mission.get("total_energy_wh"))],
-            ["Battery margin (%)", _fmt(mission.get("battery_margin_pct"))],
             ["Terrain elevation source", mission.get("elevation_source", "-")],
         ]
+        if mission.get("energy_source") == "fuel":
+            m_rows.insert(6, ["Total fuel required (L)", _fmt(mission.get("total_fuel_used_l"))])
+            m_rows.insert(7, ["Usable fuel after reserve (L)", _fmt(mission.get("fuel_usable_l"))])
+            m_rows.insert(8, ["Fuel margin (%)", _fmt(mission.get("fuel_margin_pct"))])
+        else:
+            m_rows.insert(6, ["Total energy required (Wh)", _fmt(mission.get("total_energy_wh"))])
+            m_rows.insert(7, ["Battery margin (%)", _fmt(mission.get("battery_margin_pct"))])
         tm = Table([["Metric", "Value"]] + m_rows, colWidths=[100 * mm, 70 * mm])
         tm.setStyle(_table_style())
         elements.append(tm)

@@ -335,6 +335,12 @@ class MissionComputeResponse(BaseModel):
     total_distance_km: float
     mission_duration_hr: float
     total_energy_wh: float
+    total_fuel_used_kg: Optional[float] = None
+    total_fuel_used_l: Optional[float] = None
+    fuel_capacity_l: Optional[float] = None
+    fuel_usable_l: Optional[float] = None
+    fuel_margin_pct: Optional[float] = None
+    energy_source: str = "battery"
     battery_capacity_wh: float
     battery_usable_wh: float
     battery_margin_pct: float

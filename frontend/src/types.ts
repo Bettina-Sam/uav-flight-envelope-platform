@@ -293,6 +293,12 @@ export interface MissionComputeResponse {
   total_distance_km: number;
   mission_duration_hr: number;
   total_energy_wh: number;
+  total_fuel_used_kg?: number | null;
+  total_fuel_used_l?: number | null;
+  fuel_capacity_l?: number | null;
+  fuel_usable_l?: number | null;
+  fuel_margin_pct?: number | null;
+  energy_source?: 'battery' | 'fuel';
   battery_capacity_wh: number;
   battery_usable_wh: number;
   battery_margin_pct: number;

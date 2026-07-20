@@ -82,10 +82,11 @@ def _sample_near_tapas(rng: random.Random):
         "cruise_speed_ms": (0.9, 1.2),
         "thrust_to_weight": (0.75, 1.3),
         "propulsion_efficiency": (0.9, 1.12),
+        "sfc_kg_per_n_s": (0.45, 1.75),
         "battery_wh": (0.55, 1.3),
         "battery_soc": (0.8, 1.0),
         "aux_power_w": (0.5, 1.5),
-        "fuel_capacity_l": (0.5, 1.3),
+        "fuel_capacity_l": (0.25, 1.75),
         "propeller_diameter_m": (0.8, 1.15),
     }
     for key, (lo, hi) in multipliers.items():
@@ -106,8 +107,10 @@ def _row_from_input(data: dict):
     return generate_row(uav)
 
 
-def build_augmented_dataframe(n_local_samples=4000, n_reference_anchors=0, seed=9):
+def build_augmented_dataframe(n_local_samples=12000, n_reference_anchors=0, n_fuel_sweep_samples=2500, seed=9):
     base_df = pd.read_csv(DATA_PATH)
+    if len(base_df) > 2500:
+        base_df = base_df.sample(n=2500, random_state=seed).reset_index(drop=True)
     rng = random.Random(seed)
     rows = []
     for _ in range(n_reference_anchors):
@@ -115,6 +118,15 @@ def build_augmented_dataframe(n_local_samples=4000, n_reference_anchors=0, seed=
     while len(rows) < n_reference_anchors + n_local_samples:
         try:
             rows.append(_row_from_input(_sample_near_tapas(rng)))
+        except Exception:
+            continue
+    for _ in range(n_fuel_sweep_samples):
+        try:
+            d = _sample_near_tapas(rng)
+            d["fuel_capacity_l"] = rng.uniform(75.0, 1100.0)
+            d["sfc_kg_per_n_s"] = rng.uniform(0.000003, 0.000014)
+            d["battery_wh"] = TAPAS_BASE["battery_wh"] * rng.uniform(0.8, 1.1)
+            rows.append(_row_from_input(d))
         except Exception:
             continue
     aug_df = pd.DataFrame(rows)
@@ -136,11 +148,11 @@ def train(seed=42):
     X_test_s = scaler.transform(X_test)
 
     model = ExtraTreesRegressor(
-        n_estimators=80,
-        max_depth=14,
+        n_estimators=140,
+        max_depth=18,
         random_state=seed,
         n_jobs=-1,
-        min_samples_leaf=3,
+        min_samples_leaf=2,
         max_features=0.8,
     )
     t0 = time.time()

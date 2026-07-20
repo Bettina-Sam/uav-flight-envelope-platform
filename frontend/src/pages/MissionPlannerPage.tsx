@@ -485,7 +485,13 @@ export default function MissionPlannerPage() {
           {/* Summary stats */}
           <div className="flex justify-end mb-2">
             <NarrateButton
-              text={narrateMissionSummary(result.mission_type, result.waypoints.length, result.mission_duration_hr * 60, result.total_distance_km, result.battery_margin_pct)}
+              text={narrateMissionSummary(
+                result.mission_type,
+                result.waypoints.length,
+                result.mission_duration_hr * 60,
+                result.total_distance_km,
+                result.energy_source === 'fuel' ? (result.fuel_margin_pct ?? 0) : result.battery_margin_pct
+              )}
               label="Narrate Summary"
             />
           </div>
@@ -503,10 +509,21 @@ export default function MissionPlannerPage() {
               <div className="font-mono text-2xl text-cyan mt-1">{result.cruise_altitude_m.toFixed(0)}<span className="text-sm text-muted ml-1">m</span></div>
             </div>
             <div className="panel p-4">
-              <div className="eyebrow">Battery Margin</div>
-              <div className={`font-mono text-2xl mt-1 ${result.battery_margin_pct > 20 ? 'text-green' : result.battery_margin_pct > 0 ? 'text-amber' : 'text-red'}`}>
-                {result.battery_margin_pct.toFixed(0)}<span className="text-sm text-muted ml-1">%</span>
-              </div>
+              <div className="eyebrow">{result.energy_source === 'fuel' ? 'Fuel Margin' : 'Battery Margin'}</div>
+              {(() => {
+                const margin = result.energy_source === 'fuel' ? (result.fuel_margin_pct ?? 0) : result.battery_margin_pct;
+                return (
+                  <div className={`font-mono text-2xl mt-1 ${margin > 20 ? 'text-green' : margin > 0 ? 'text-amber' : 'text-red'}`}>
+                    {margin.toFixed(0)}<span className="text-sm text-muted ml-1">%</span>
+                  </div>
+                );
+              })()}
+              {result.energy_source === 'fuel' && result.total_fuel_used_l != null && (
+                <div className="text-[10px] text-muted mt-1">{result.total_fuel_used_l.toFixed(1)} L used</div>
+              )}
+              {result.energy_source !== 'fuel' && (
+                <div className="text-[10px] text-muted mt-1">{result.total_energy_wh.toFixed(0)} Wh used</div>
+              )}
             </div>
           </div>
 
