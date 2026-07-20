@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, Send, Ruler, Wind, Zap, Weight, BatteryCharging, Link2 } from 'lucide-react';
+import { Loader2, Send, Ruler, Wind, Zap, Weight, BatteryCharging, Link2, Fuel } from 'lucide-react';
 import { useUAV } from '../context/UAVContext';
 import { UAVInput } from '../types';
 import { getTrainingBounds } from '../api/client';
@@ -113,7 +113,13 @@ export default function UAVInputPage() {
   const thrustN = (local as any).thrust_to_weight * local.mass_kg * 9.80665;
   const totalPower = thrustN * (local as any).cruise_speed_ms / Math.max((local as any).propulsion_efficiency, 1e-3);
   const powerLoading = totalPower / local.mass_kg;
-  const estimatedMTOW = local.mass_kg;
+  const fuelMassKg = local.fuel_capacity_l * 0.8;
+  const reserveFuelKg = fuelMassKg * 0.2;
+  const estimatedMTOW = local.mass_kg + fuelMassKg;
+  const landingMassKg = local.mass_kg + reserveFuelKg;
+  const weightRatio = landingMassKg > 0 ? estimatedMTOW / landingMassKg : 1;
+  const breguetLogTerm = Math.log(Math.max(1, weightRatio));
+  const fuelMode = local.fuel_capacity_l > 0 && local.sfc_kg_per_n_s > 0;
 
   const overallStatus = useMemo(() => {
     if (!bounds) return null;
@@ -198,10 +204,11 @@ export default function UAVInputPage() {
         )}
       </div>
       <p className="text-muted text-sm mb-8 max-w-2xl">
-        Enter the design parameters of your fixed-wing electric UAV, grouped by engineering
+        Enter the design parameters of your fixed-wing UAV, grouped by engineering
         discipline. These feed both the physics engine and the ML surrogate model identically, so
         their outputs are directly comparable. Each field is checked against the ML model's
-        training sampling distribution.
+        training sampling distribution. Fuel capacity and SFC activate the Breguet fuel endurance
+        and range model; otherwise the electric battery model is used.
       </p>
 
 
@@ -271,6 +278,18 @@ export default function UAVInputPage() {
             <div className="font-mono text-lg text-text mt-1">{aspectRatio.toFixed(2)}</div>
           </div>
           <div>
+            <div className="eyebrow flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5" /> Fuel Mass</div>
+            <div className={`font-mono text-lg mt-1 ${fuelMode ? 'text-amber' : 'text-muted'}`}>{fuelMassKg.toFixed(1)} kg</div>
+          </div>
+          <div>
+            <div className="eyebrow">Wtakeoff / Wlanding</div>
+            <div className={`font-mono text-lg mt-1 ${fuelMode ? 'text-cyan' : 'text-muted'}`}>{weightRatio.toFixed(4)}</div>
+          </div>
+          <div>
+            <div className="eyebrow">Breguet ln Term</div>
+            <div className={`font-mono text-lg mt-1 ${fuelMode ? 'text-cyan' : 'text-muted'}`}>{breguetLogTerm.toFixed(4)}</div>
+          </div>
+          <div>
             <div className="eyebrow">Wing Loading</div>
             <div className="font-mono text-lg text-text mt-1">{wingLoading.toFixed(1)} kg/m²</div>
           </div>
@@ -283,8 +302,12 @@ export default function UAVInputPage() {
             <div className="font-mono text-lg text-text mt-1">{powerLoading.toFixed(1)} W/kg</div>
           </div>
           <div>
-            <div className="eyebrow">Est. MTOW</div>
+            <div className="eyebrow">Est. Takeoff Mass</div>
             <div className="font-mono text-lg text-text mt-1">{estimatedMTOW.toFixed(1)} kg</div>
+          </div>
+          <div>
+            <div className="eyebrow">Active Energy Model</div>
+            <div className={`font-mono text-lg mt-1 ${fuelMode ? 'text-amber' : 'text-cyan'}`}>{fuelMode ? 'Breguet Fuel' : 'Electric'}</div>
           </div>
           <div>
             <div className="eyebrow">Battery Energy (usable)</div>
