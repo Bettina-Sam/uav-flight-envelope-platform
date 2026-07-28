@@ -10,6 +10,7 @@ import { explainPrediction } from '../api/client';
 import { LocalExplanationResponse } from '../types';
 import NarrateButton from '../components/NarrateButton';
 import { narrateML } from '../lib/narrationText';
+import { useLanguage } from '../context/LanguageContext';
 import StatCard from '../components/StatCard';
 import { formatDurationHHMM } from '../lib/duration';
 import SafetyBadge from '../components/SafetyBadge';
@@ -21,6 +22,7 @@ const TARGET_OPTIONS = [
 
 export default function MLPredictionPage() {
   const { result, input } = useUAV();
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const c = getChartColors(theme);
   const [target, setTarget] = useState('range_km');
@@ -75,7 +77,7 @@ export default function MLPredictionPage() {
         <span className="font-mono text-[11px] text-muted border border-border rounded-full px-3 py-1">
           model: {ml.model_used}
         </span>
-        <div className="ml-auto"><NarrateButton text={narrateML(result)} label="Narrate" /></div>
+        <div className="ml-auto"><NarrateButton text={narrateML(result, language)} label="Narrate" /></div>
       </div>
       <p className="text-muted text-sm mb-8 max-w-2xl">
         Predicted by the trained {ml.model_used} model from the same 14 design features — no

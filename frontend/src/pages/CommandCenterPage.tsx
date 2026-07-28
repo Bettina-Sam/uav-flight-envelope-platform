@@ -13,6 +13,7 @@ import NarrateButton from '../components/NarrateButton';
 import { drawFlightCard } from '../lib/flightCard';
 import { formatDurationHHMM } from '../lib/duration';
 import RangeEndurance3D from '../components/RangeEndurance3D';
+import { useLanguage } from '../context/LanguageContext';
 
 const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; step: number; unit: string }[] = [
   { key: 'mass_kg', label: 'Mass', min: 7, max: 3000, step: 1, unit: 'kg' },
@@ -104,6 +105,7 @@ function sliderValue(input: UAVInput, key: keyof UAVInput) {
 
 export default function CommandCenterPage() {
   const { input, result: baseResult } = useUAV();
+  const { language } = useLanguage();
 
   const [liveInput, setLiveInput] = useState<UAVInput>(input);
   const [liveResult, setLiveResult] = useState<PredictResponse | null>(baseResult);
@@ -180,7 +182,7 @@ export default function CommandCenterPage() {
     }
   };
 
-  const narration = useMemo(() => (liveResult ? narrateDashboard(liveResult, score) : ''), [liveResult, score]);
+  const narration = useMemo(() => (liveResult ? narrateDashboard(liveResult, score, language) : ''), [liveResult, score, language]);
 
   if (!liveResult) {
     return (

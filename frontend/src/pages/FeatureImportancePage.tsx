@@ -186,7 +186,9 @@ export default function FeatureImportancePage() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name: name.replace(/_/g, ' '), value: Number(value.toFixed(4)) }));
 
-  const modelRows = Object.entries(data.model_comparison).sort((a, b) => b[1].avg.R2 - a[1].avg.R2);
+  const modelRows = Object.entries(data.model_comparison)
+    .filter(([name]) => name !== 'GradientBoosting')
+    .sort((a, b) => b[1].avg.R2 - a[1].avg.R2);
 
   return (
     <div>

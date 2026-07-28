@@ -2,14 +2,9 @@
  * Voice narration via the browser's built-in SpeechSynthesis API — no
  * external TTS service, no API key, works offline once voices are loaded.
  *
- * Honesty note: the `lang` option selects which installed system voice/
- * accent reads the text (e.g. 'hi-IN' will use a Hindi voice if the
- * person's OS has one installed, falling back to the browser default
- * otherwise) — it does NOT translate the summary text itself. Machine-
- * translating technical aerospace terminology reliably enough to ship is
- * a real quality bar this pass doesn't clear, so narration text is
- * English-only for now; the language selector affects pronunciation/voice
- * only. That's stated in the UI, not just here.
+ * Localized English, Hindi, or Tamil narration text is read with the
+ * matching installed system voice. A browser can fall back to its default
+ * voice when that language's OS voice pack is not installed.
  */
 export interface VoiceLang {
   code: string;
@@ -18,8 +13,8 @@ export interface VoiceLang {
 
 export const VOICE_LANGS: VoiceLang[] = [
   { code: 'en-US', label: 'English' },
-  { code: 'hi-IN', label: 'Hindi voice (if installed)' },
-  { code: 'ta-IN', label: 'Tamil voice (if installed)' },
+  { code: 'hi-IN', label: 'हिन्दी आवाज़' },
+  { code: 'ta-IN', label: 'தமிழ் குரல்' },
 ];
 
 let currentUtterance: SpeechSynthesisUtterance | null = null;

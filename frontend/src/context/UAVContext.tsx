@@ -23,7 +23,7 @@ const UAVContext = createContext<UAVContextValue | undefined>(undefined);
 // on" should survive a reload, but shouldn't quietly persist forever or
 // collide with the separate, deliberate Saved Configurations feature.
 const SESSION_KEY = 'uav-envelope-session-v1';
-const CURRENT_MODEL_NAME = 'TAPASLocalExtraTrees';
+const CURRENT_MODEL_NAME = 'XGBoost';
 
 interface PersistedSession {
   input: UAVInput;

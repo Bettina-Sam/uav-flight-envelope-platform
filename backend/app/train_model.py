@@ -36,7 +36,7 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor, GradientBoostingRegressor, RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor, RandomForestClassifier
 from sklearn.svm import SVR
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
@@ -106,7 +106,6 @@ def build_models():
         # contribution to the epistemic ensemble spread.
         "RandomForest": RandomForestRegressor(n_estimators=200, max_depth=16, min_samples_leaf=4, random_state=42, n_jobs=-1),
         "ExtraTrees": ExtraTreesRegressor(n_estimators=250, max_depth=16, min_samples_leaf=4, random_state=42, n_jobs=-1),
-        "GradientBoosting": MultiOutputRegressor(GradientBoostingRegressor(n_estimators=150, max_depth=3, random_state=42), n_jobs=-1),
         # SVR is deliberately NOT in this dict - see the dedicated subsampled
         # training block below, same reasoning as Gaussian Process.
     }

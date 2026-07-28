@@ -19,7 +19,7 @@ const TARGET_OPTIONS = [
 
 const MODEL_COLORS: Record<string, string> = {
   LinearRegression: '#8A9BB5', RandomForest: '#F5A623', ExtraTrees: '#E07A5F',
-  GradientBoosting: '#9B59B6', SVR: '#3D9970', XGBoost: '#4FD1C5', GaussianProcess: '#5B8DEF',
+  SVR: '#3D9970', XGBoost: '#4FD1C5', GaussianProcess: '#5B8DEF',
 };
 
 function histogramBins(samples: number[], binCount = 24) {
@@ -130,6 +130,7 @@ export default function UncertaintyAnalysisPage() {
             </thead>
             <tbody>
               {Object.entries(fiData.model_comparison)
+                .filter(([name]) => name !== 'GradientBoosting')
                 .sort((a: any, b: any) => (b[1].avg?.R2 ?? 0) - (a[1].avg?.R2 ?? 0))
                 .map(([name, m]: any) => (
                   <tr key={name} className={`border-b border-border/50 ${name === fiData.best_model_name ? 'bg-cyan/5' : ''}`}>
@@ -166,7 +167,7 @@ export default function UncertaintyAnalysisPage() {
           <div className="panel p-10 flex items-center justify-center gap-2 text-muted text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Loading held-out test predictions…</div>
         ) : scatterData ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {Object.entries(scatterData.data).map(([model, targets]) => {
+            {Object.entries(scatterData.data).filter(([model]) => model !== 'GradientBoosting').map(([model, targets]) => {
               const t = targets[scatterTarget];
               if (!t) return null;
               const pts = t.y_true.map((yt, i) => ({ x: yt, y: t.y_pred[i] }));

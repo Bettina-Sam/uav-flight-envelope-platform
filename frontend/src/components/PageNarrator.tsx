@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import NarrateButton from './NarrateButton';
 import { PAGE_DESCRIPTIONS } from '../lib/narrationText';
+import { useLanguage } from '../context/LanguageContext';
 
 /** Sits in the navbar. Looks up a plain-English description of whatever
  * page you're currently on and offers to read it aloud — the "explain
@@ -9,7 +10,8 @@ import { PAGE_DESCRIPTIONS } from '../lib/narrationText';
  * disappearing, so it's always available. */
 export default function PageNarrator() {
   const { pathname } = useLocation();
-  const text = PAGE_DESCRIPTIONS[pathname]
-    || 'This page is part of the UAV Flight Envelope Platform, a physics-informed machine learning system for UAV design analysis.';
-  return <NarrateButton text={text} label="Explain Page" />;
+  const { language, t } = useLanguage();
+  const descriptions = PAGE_DESCRIPTIONS[language];
+  const text = descriptions[pathname] || descriptions.default;
+  return <NarrateButton text={text} label={t('Explain Page')} />;
 }

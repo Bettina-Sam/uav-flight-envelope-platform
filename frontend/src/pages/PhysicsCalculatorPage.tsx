@@ -6,6 +6,7 @@ import { formatDurationHHMM } from '../lib/duration';
 import SafetyBadge from '../components/SafetyBadge';
 import NarrateButton from '../components/NarrateButton';
 import { narratePhysics } from '../lib/narrationText';
+import { useLanguage } from '../context/LanguageContext';
 import type { PhysicsResult } from '../types';
 
 function interpret(p: PhysicsResult) {
@@ -28,6 +29,7 @@ function interpret(p: PhysicsResult) {
 
 export default function PhysicsCalculatorPage() {
   const { result } = useUAV();
+  const { language } = useLanguage();
 
   if (!result) {
     return (
@@ -47,7 +49,7 @@ export default function PhysicsCalculatorPage() {
       <div className="flex items-center gap-3 mb-2 flex-wrap">
         <h1 className="font-display text-3xl font-semibold">Physics Engine Results</h1>
         <SafetyBadge status={p.safety_status} />
-        <div className="ml-auto"><NarrateButton text={narratePhysics(result)} label="Narrate" /></div>
+        <div className="ml-auto"><NarrateButton text={narratePhysics(result, language)} label="Narrate" /></div>
       </div>
       <p className="text-muted text-sm mb-8 max-w-2xl">
         Computed directly from ISA atmosphere and steady-level-flight equations — no ML involved.

@@ -53,7 +53,7 @@ export default function NarrateButton({ text, label = 'Narrate this page' }: Pro
       <select
         value={lang}
         onChange={(e) => setLang(e.target.value)}
-        title="Voice / accent (pronunciation only — text stays in English)"
+        title="Narration voice. Install the matching OS voice pack if the browser falls back to English."
         className="bg-bg border border-border rounded-md px-1.5 py-1.5 font-mono text-[10px] text-muted"
       >
         {VOICE_LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}

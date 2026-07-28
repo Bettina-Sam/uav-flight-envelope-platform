@@ -46,10 +46,13 @@ export default function RangeEndurance3D({ range, enduranceHours, cruiseSpeedMs 
         <text x="70" y="302" textAnchor="middle" fill="#8A9BB5" fontSize="10" fontFamily="monospace">MISSION START</text>
         <text x="660" y="302" textAnchor="middle" fill="#8A9BB5" fontSize="10" fontFamily="monospace">RANGE LIMIT</text>
         <motion.g
-          initial={{ offsetDistance: '0%' }}
-          animate={{ offsetDistance: '100%' }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-          style={{ offsetPath: `path("M 70 278 C 220 160, 510 160, 660 278")` }}
+          initial={{ x: 70, y: 278, rotate: -18 }}
+          animate={{
+            x: [70, 160, 280, 400, 520, 660],
+            y: [278, 218, 183, 178, 214, 278],
+            rotate: [-18, -12, -3, 4, 12, 18],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'linear', times: [0, 0.18, 0.4, 0.6, 0.82, 1] }}
           filter="url(#re3dGlow)"
         >
           <path d="M-20 0 L-5 -4 L3 -18 L8 -18 L6 -3 L22 1 L22 5 L6 5 L9 17 L4 17 L-5 6 L-20 4 Z" fill="#E8FFFC" stroke="#4FD1C5" strokeWidth="1.5" />

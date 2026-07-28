@@ -22,6 +22,7 @@ import { narrateMissionSummary } from '../lib/narrationText';
 import NarrateButton from '../components/NarrateButton';
 import { buildKML, buildGPX, downloadTextFile } from '../lib/missionExport';
 import { saveMissionToHistory } from '../lib/missionHistory';
+import { useLanguage } from '../context/LanguageContext';
 
 const DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -61,6 +62,7 @@ function FlyTo({ target }: { target: [number, number, number] | null }) {
 
 export default function MissionPlannerPage() {
   const { input, result: currentPrediction, setLastMission } = useUAV();
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const c = getChartColors(theme);
 
@@ -502,7 +504,8 @@ export default function MissionPlannerPage() {
                 result.waypoints.length,
                 result.mission_duration_hr * 60,
                 result.total_distance_km,
-                result.energy_source === 'fuel' ? (result.fuel_margin_pct ?? 0) : result.battery_margin_pct
+                result.energy_source === 'fuel' ? (result.fuel_margin_pct ?? 0) : result.battery_margin_pct,
+                language
               )}
               label="Narrate Summary"
             />
