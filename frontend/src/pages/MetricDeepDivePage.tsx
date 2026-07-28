@@ -14,7 +14,7 @@ import SafetyBadge from '../components/SafetyBadge';
 interface ParamCfg { key: keyof UAVInput; label: string; min: number; max: number }
 
 interface Props {
-  target: 'range_km' | 'endurance_hr';
+  target: 'range_km' | 'endurance_hr' | 'recommended_altitude_m';
   title: string;
   unit: string;
   accentDesc: string;
@@ -76,7 +76,8 @@ export default function MetricDeepDivePage({ target, title, unit, accentDesc, re
   const chartData = (sweep || []).map((p) => ({
     value: Number(p.parameter_value.toFixed(2)),
     target: target === 'range_km' ? Number(p.range_km.toFixed(1))
-      : Number(p.endurance_hr.toFixed(2)),
+      : target === 'endurance_hr' ? Number(p.endurance_hr.toFixed(2))
+      : Number(p.recommended_altitude_m.toFixed(0)),
   }));
 
   const diffTier = entry ? TIER_COLOR(Math.abs(entry.difference_pct)) : 'text-muted';
@@ -95,7 +96,7 @@ export default function MetricDeepDivePage({ target, title, unit, accentDesc, re
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="panel p-5">
           <div className="eyebrow mb-2">Physics Prediction</div>
           <div className="font-mono text-3xl text-text">{physicsValue.toFixed(2)} <span className="text-sm text-muted">{unit}</span></div>
-          <p className="text-xs text-muted mt-2">Computed directly from the aircraft and energy-system equations.</p>
+          <p className="text-xs text-muted mt-2">Computed directly from steady-level-flight equations at the recommended cruise altitude.</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="panel p-5">
           <div className="eyebrow mb-2">ML Prediction</div>

@@ -140,7 +140,7 @@ export default function UAVInputPage() {
     e.preventDefault();
     setInput(local);
     const res = await runPrediction(local);
-    if (res) navigate('/physics');
+    if (res) navigate('/dashboard');
   };
 
   return (

@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Route, ChevronDown } from 'lucide-react';
+import { Menu, X, Radar, ChevronDown } from 'lucide-react';
 import InstallButton from './InstallButton';
 import ThemeToggle from './ThemeToggle';
 import SoundToggle from './SoundToggle';
@@ -18,29 +18,39 @@ const GROUPS: GroupItem[] = [
     label: 'Design',
     links: [
       { to: '/input', label: 'UAV Input' },
-      { to: '/physics', label: 'Range & Endurance Physics' },
-      { to: '/ml', label: 'Range & Endurance ML' },
+      { to: '/physics', label: 'Physics' },
+      { to: '/ml', label: 'ML Prediction' },
     ],
   },
   {
     key: 'analysis',
     label: 'Analysis',
     links: [
+      { to: '/dashboard', label: 'Envelope Dashboard' },
+      { to: '/command-center', label: 'Command Center' },
       { to: '/comparison', label: 'Physics vs ML' },
-      { to: '/performance', label: 'Range / Endurance Performance' },
+      { to: '/performance', label: 'Performance (Altitude / Range / Endurance)' },
       { to: '/uncertainty', label: 'Uncertainty Quantification' },
+      { to: '/feature-importance', label: 'Feature Importance' },
+      { to: '/sensitivity', label: 'Sensitivity' },
     ],
   },
   {
     key: 'tools',
     label: 'Tools',
     links: [
+      { to: '/mission', label: 'Mission Planner' },
+      { to: '/missions', label: 'Global Mission Map' },
+      { to: '/design-studio', label: 'Design Studio (Auto Design / Failure Sim)' },
       { to: '/batch', label: 'Batch CSV' },
     ],
   },
 ];
 
-const STANDALONE_RIGHT: LinkItem[] = [];
+const STANDALONE_RIGHT: LinkItem[] = [
+  { to: '/report', label: 'Report' },
+  { to: '/about', label: 'About' },
+];
 
 function useIsGroupActive(links: LinkItem[]) {
   const { pathname } = useLocation();
@@ -160,9 +170,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/85 backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <NavLink to="/" className="flex items-center gap-2 shrink-0" onClick={() => setOpen(false)}>
-          <Route className="w-5 h-5 text-cyan" />
+          <Radar className="w-5 h-5 text-cyan" />
           <span className="font-display font-semibold tracking-tight text-[15px]">
-            UAV<span className="text-cyan"> Range &amp; Endurance</span>
+            UAV<span className="text-cyan"> Envelope</span>
           </span>
         </NavLink>
 

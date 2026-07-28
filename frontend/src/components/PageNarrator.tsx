@@ -10,6 +10,6 @@ import { PAGE_DESCRIPTIONS } from '../lib/narrationText';
 export default function PageNarrator() {
   const { pathname } = useLocation();
   const text = PAGE_DESCRIPTIONS[pathname]
-    || 'This page is part of the UAV range and endurance analysis platform.';
+    || 'This page is part of the UAV Flight Envelope Platform, a physics-informed machine learning system for UAV design analysis.';
   return <NarrateButton text={text} label="Explain Page" />;
 }
