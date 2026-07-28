@@ -14,8 +14,7 @@ import { MonteCarloResponse, EpistemicResponse, ScatterResponse, FeatureImportan
 
 const TARGET_OPTIONS = [
   { key: 'endurance_hr', label: 'Endurance', unit: 'hr' },
-  { key: 'range_km', label: 'Range', unit: 'km' },
-  { key: 'recommended_altitude_m', label: 'Recommended Altitude', unit: 'm' },
+  { key: 'range_km', label: 'Range Value', unit: 'speed × hours' },
 ] as const;
 
 const MODEL_COLORS: Record<string, string> = {
@@ -118,7 +117,7 @@ export default function UncertaintyAnalysisPage() {
 
       {/* Model benchmark table */}
       <div className="panel p-5 mb-8 overflow-x-auto">
-        <div className="eyebrow mb-3">Model Benchmark — MAE / RMSE / R² (averaged across all 12 outputs)</div>
+        <div className="eyebrow mb-3">Model Benchmark — MAE / RMSE / R²</div>
         {fiData ? (
           <table className="w-full text-xs font-mono min-w-[520px]">
             <thead>
@@ -305,7 +304,7 @@ export default function UncertaintyAnalysisPage() {
       </div>
 
       <div className="mt-8">
-        <Link to="/feature-importance" className="text-cyan font-mono text-xs uppercase tracking-wider">View Feature Importance →</Link>
+        <Link to="/performance" className="text-cyan font-mono text-xs uppercase tracking-wider">View Performance Analysis →</Link>
       </div>
     </div>
   );

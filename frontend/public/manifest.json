@@ -1,7 +1,7 @@
 {
-  "name": "UAV Flight Envelope Platform",
-  "short_name": "UAV Envelope",
-  "description": "Physics-Informed Machine Learning Platform for UAV Flight Envelope Prediction and Altitude Optimization",
+  "name": "UAV Range and Endurance Platform",
+  "short_name": "UAV Performance",
+  "description": "Physics-Informed Machine Learning Platform for UAV Range and Endurance Analysis",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B1220",

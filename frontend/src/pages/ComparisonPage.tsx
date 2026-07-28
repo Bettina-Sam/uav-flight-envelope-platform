@@ -9,22 +9,11 @@ import { getChartColors } from '../lib/chartTheme';
 import { formatDurationHHMM } from '../lib/duration';
 
 const METRIC_META: Record<string, { label: string; unit: string }> = {
-  recommended_altitude_m: { label: 'Recommended Altitude', unit: 'm' },
-  service_ceiling_m: { label: 'Service Ceiling', unit: 'm' },
-  absolute_ceiling_m: { label: 'Absolute Ceiling', unit: 'm' },
-  rate_of_climb_ms: { label: 'Rate of Climb', unit: 'm/s' },
-  range_km: { label: 'Range', unit: 'km' },
+  range_km: { label: 'Range Value', unit: 'speed × hours' },
   endurance_hr: { label: 'Endurance', unit: 'HH:MM' },
-  lift_n: { label: 'Lift', unit: 'N' },
-  drag_n: { label: 'Drag', unit: 'N' },
-  l_over_d: { label: 'Lift-to-Drag Ratio', unit: '' },
-  power_required_w: { label: 'Power Required', unit: 'W' },
 };
 
-const ORDER = [
-  'recommended_altitude_m', 'endurance_hr', 'range_km', 'service_ceiling_m', 'absolute_ceiling_m',
-  'rate_of_climb_ms', 'lift_n', 'drag_n', 'l_over_d', 'power_required_w',
-];
+const ORDER = ['endurance_hr', 'range_km'];
 
 function tier(absDiff: number, normalizedError: number | null): 'green' | 'yellow' | 'red' {
   if (normalizedError !== null) {
@@ -105,8 +94,8 @@ export default function ComparisonPage() {
         </div>
       </div>
       <p className="text-muted text-sm mb-8 max-w-2xl">
-        Every shared output quantity, compared side by side. Physics is the auditable ground truth;
-        ML is the fast surrogate. Large gaps flag configurations the model hasn't seen much of.
+        Range and endurance compared side by side. Physics is the auditable calculation and ML is
+        the fast surrogate; large gaps flag configurations outside the model's strongest region.
       </p>
 
       {/* Difference chart — always visible, single view of disagreement across all metrics */}

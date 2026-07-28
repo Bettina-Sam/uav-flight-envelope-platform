@@ -695,12 +695,19 @@ def _auto_design_search(req: AutoDesignRequest) -> AutoDesignResponse:
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(inp: UAVInput):
-    physics_result, envelope_points, uav = _run_physics(inp)
+    physics_result, _, uav = _run_physics(inp)
     ml_result = _run_ml(uav)
-    comparison = _compare(physics_result, ml_result)
+    comparison = [
+        entry for entry in _compare(physics_result, ml_result)
+        if entry["target"] in {"range_km", "endurance_hr"}
+    ]
+    ml_result["confidence_intervals"] = {
+        key: value for key, value in ml_result.get("confidence_intervals", {}).items()
+        if key in {"range_km", "endurance_hr"}
+    }
     return PredictResponse(
         input=inp,
-        physics=PhysicsResult(**physics_result, envelope_profile=envelope_points),
+        physics=PhysicsResult(**physics_result),
         ml=MLResult(**ml_result),
         comparison=[ComparisonEntry(**c) for c in comparison],
     )
@@ -741,17 +748,10 @@ async def batch_predict(file: UploadFile = File(...)):
         ml_result = _run_ml(uav)
         rows_out.append({
             **{c: getattr(inp, c) for c in required},
-            "num_engines": uav.num_engines,
-            "physics_recommended_altitude_m": physics_result["recommended_altitude_m"],
-            "physics_min_altitude_m": physics_result["min_altitude_m"],
-            "physics_max_altitude_m": physics_result["max_altitude_m"],
-            "physics_service_ceiling_m": physics_result["service_ceiling_m"],
-            "physics_safety_status": physics_result["safety_status"],
-            "ml_recommended_altitude_m": ml_result["recommended_altitude_m"],
-            "ml_min_altitude_m": ml_result["min_altitude_m"],
-            "ml_max_altitude_m": ml_result["max_altitude_m"],
-            "ml_safety_status": ml_result["safety_status"],
-            "ml_safety_confidence": ml_result["safety_confidence"],
+            "physics_endurance_hr": physics_result["endurance_hr"],
+            "physics_range_value": physics_result["range_km"],
+            "ml_endurance_hr": ml_result["endurance_hr"],
+            "ml_range_value": ml_result["range_km"],
         })
 
     return {"n_rows": len(rows_out), "results": rows_out}
@@ -786,14 +786,8 @@ def sensitivity(req: SensitivityRequest):
         physics_result, _, uav = _run_physics(inp)
         points.append(SensitivityPoint(
             parameter_value=float(v),
-            recommended_altitude_m=physics_result["recommended_altitude_m"],
-            max_altitude_m=physics_result["max_altitude_m"],
-            rate_of_climb_ms=physics_result["rate_of_climb_ms"],
             endurance_hr=physics_result["endurance_hr"],
             range_km=physics_result["range_km"],
-            l_over_d=physics_result["l_over_d"],
-            power_required_w=physics_result["power_required_w"],
-            safety_status=physics_result["safety_status"],
         ))
     return points
 
@@ -806,8 +800,7 @@ def sensitivity_2d(req: Sensitivity2DRequest):
     base = req.base_input.dict()
     if req.parameter_x not in base or req.parameter_y not in base:
         raise HTTPException(400, "Unknown parameter_x or parameter_y")
-    if req.target not in ("recommended_altitude_m", "range_km", "endurance_hr",
-                           "rate_of_climb_ms", "l_over_d", "power_required_w"):
+    if req.target not in ("range_km", "endurance_hr"):
         raise HTTPException(400, f"Unsupported target '{req.target}'")
 
     steps = max(3, min(req.steps, 14))
@@ -872,7 +865,7 @@ def uncertainty_monte_carlo(req: MonteCarloRequest):
     samples["battery_wh"] = np.clip(samples["battery_wh"], 50, 150000)
     samples["propulsion_efficiency"] = np.clip(samples["propulsion_efficiency"], 0.3, 0.99)
 
-    endurance_vals, range_vals, alt_vals = [], [], []
+    endurance_vals, range_vals = [], []
     for i in range(n):
         trial = dict(base)
         for p in ALEATORIC_PARAMS:
@@ -882,7 +875,6 @@ def uncertainty_monte_carlo(req: MonteCarloRequest):
             r, _, _ = _run_physics(trial_input)
             endurance_vals.append(r["endurance_hr"])
             range_vals.append(r["range_km"])
-            alt_vals.append(r["recommended_altitude_m"])
         except Exception:
             continue
 
@@ -898,7 +890,6 @@ def uncertainty_monte_carlo(req: MonteCarloRequest):
         n_samples=len(endurance_vals),
         endurance_hr=summarize(endurance_vals),
         range_km=summarize(range_vals),
-        recommended_altitude_m=summarize(alt_vals),
         method="monte_carlo_normal_perturbation_through_physics_engine",
         perturbed_parameters={p: std_pct[p] for p in ALEATORIC_PARAMS},
     )
@@ -926,10 +917,10 @@ def uncertainty_epistemic(req: EpistemicRequest):
         else:
             _all_models = joblib.load(all_models_path)
 
-    if req.target not in REG_TARGETS:
+    if req.target not in {"range_km", "endurance_hr"}:
         raise HTTPException(
             400,
-            f"Unknown target '{req.target}'. Choose from {REG_TARGETS}"
+            f"Unknown target '{req.target}'. Choose range_km or endurance_hr."
         )
 
     uav = _uav_config_from_input(req.input)
@@ -974,11 +965,17 @@ def uncertainty_epistemic(req: EpistemicRequest):
 
 @app.get("/uncertainty/scatter", response_model=ScatterResponse)
 def uncertainty_scatter():
-    """True-vs-predicted scatter data (held-out test set, capped sample)
-    for every trained model, for range/endurance/recommended-altitude."""
+    """True-vs-predicted held-out data for range and endurance."""
     if _scatter_data is None:
         raise HTTPException(503, "Scatter data not available - retrain with the current train_model.py to enable this.")
-    return ScatterResponse(data=_scatter_data)
+    filtered = {
+        model: {
+            key: value for key, value in targets.items()
+            if key in {"range_km", "endurance_hr"}
+        }
+        for model, targets in _scatter_data.items()
+    }
+    return ScatterResponse(data=filtered)
 
 
 @app.post("/explain", response_model=LocalExplanationResponse)
@@ -990,8 +987,8 @@ def explain(req: LocalExplanationRequest):
     local explanation method (an approximation in the spirit of SHAP, not
     an exact Shapley-value computation, since we don't compute the full
     coalition/permutation game)."""
-    if req.target not in REG_TARGETS:
-        raise HTTPException(400, f"Unknown target '{req.target}'. Choose from {REG_TARGETS}")
+    if req.target not in {"range_km", "endurance_hr"}:
+        raise HTTPException(400, f"Unknown target '{req.target}'. Choose range_km or endurance_hr.")
 
     uav = _uav_config_from_input(req.input)
     row = _feature_row(uav)
@@ -1141,8 +1138,8 @@ def optimize_suggestions(req: OptimizeSuggestionRequest):
     This is NOT a joint/global optimizer (it doesn't search combinations of
     changes together) - each suggestion holds everything else fixed at the
     current configuration, which is stated explicitly in its rationale."""
-    if req.target not in ("range_km", "endurance_hr", "recommended_altitude_m"):
-        raise HTTPException(400, "target must be 'range_km', 'endurance_hr', or 'recommended_altitude_m'")
+    if req.target not in ("range_km", "endurance_hr"):
+        raise HTTPException(400, "target must be 'range_km' or 'endurance_hr'")
 
     base_result, _, _ = _run_physics(req.base_input)
     baseline_value = base_result[req.target]

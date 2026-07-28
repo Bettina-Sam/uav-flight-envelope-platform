@@ -52,29 +52,11 @@ class EnvelopePoint(BaseModel):
 
 
 class PhysicsResult(BaseModel):
-    min_altitude_m: float
-    max_altitude_m: float
-    mean_altitude_m: float
-    recommended_altitude_m: float
-    recommended_reason: str
-    service_ceiling_m: float
-    absolute_ceiling_m: float
-    rate_of_climb_ms: float
     range_km: float
     endurance_hr: float
     power_required_w: float
-    power_available_w: float
-    lift_n: float
     drag_n: float
     l_over_d: float
-    stall_speed_ms: float
-    wing_loading_kg_m2: float
-    power_loading_w_kg: float
-    aspect_ratio: float
-    safety_status: str
-    warnings: List[str]
-    engine_out: EngineOutInfo
-    envelope_profile: List[EnvelopePoint]
 
 
 class ConfidenceInterval(BaseModel):
@@ -86,21 +68,8 @@ class ConfidenceInterval(BaseModel):
 class MLResult(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
-    min_altitude_m: float
-    max_altitude_m: float
-    mean_altitude_m: float
-    recommended_altitude_m: float
-    service_ceiling_m: float
-    absolute_ceiling_m: float
-    rate_of_climb_ms: float
     range_km: float
     endurance_hr: float
-    power_required_w: float
-    lift_n: float
-    drag_n: float
-    l_over_d: float
-    safety_status: str
-    safety_confidence: float
     model_used: str
     confidence_intervals: dict = Field(default_factory=dict)
     reliability_score: float = 0.0
@@ -208,7 +177,6 @@ class MonteCarloResponse(BaseModel):
     n_samples: int
     endurance_hr: MonteCarloSummary
     range_km: MonteCarloSummary
-    recommended_altitude_m: MonteCarloSummary
     method: str
     perturbed_parameters: dict
 
@@ -368,14 +336,8 @@ class DesignScoreResponse(BaseModel):
 
 class SensitivityPoint(BaseModel):
     parameter_value: float
-    recommended_altitude_m: float
-    max_altitude_m: float
-    rate_of_climb_ms: float
     endurance_hr: float
     range_km: float
-    l_over_d: float
-    power_required_w: float
-    safety_status: str
 
 
 class Sensitivity2DRequest(BaseModel):
@@ -386,7 +348,7 @@ class Sensitivity2DRequest(BaseModel):
     parameter_y: str
     min_y: float
     max_y: float
-    target: str = "recommended_altitude_m"
+    target: str = "range_km"
     steps: int = 8
 
 

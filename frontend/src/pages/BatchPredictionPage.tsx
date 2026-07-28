@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { UploadCloud, Loader2, Download } from 'lucide-react';
 import { batchPredict } from '../api/client';
-import SafetyBadge from '../components/SafetyBadge';
+import { formatDurationHHMM } from '../lib/duration';
 
 const TEMPLATE_HEADER = "aircraft_name,mass_kg,payload_kg,wing_area_m2,l_over_d,cd0,cruise_speed_ms,air_density_kg_m3,sfc_kg_per_n_s,thrust_to_weight,propulsion_efficiency,fuel_capacity_l,propeller_diameter_m,battery_wh,battery_soc,aux_power_w";
 const TEMPLATE_ROW = "MyUAV,14,3,0.6,12,0.028,20,1.225,0.000004,0.25,0.8,10,0.3,1200,0.9,480";
@@ -85,11 +85,10 @@ export default function BatchPredictionPage() {
               <tr className="text-muted uppercase border-b border-border">
                 <th className="text-left py-2 pr-3">#</th>
                 <th className="text-right py-2 px-2">Mass</th>
-                <th className="text-right py-2 px-2">Phys. Recommended</th>
-                <th className="text-right py-2 px-2">ML Recommended</th>
-                <th className="text-right py-2 px-2">Phys. Ceiling</th>
-                <th className="text-left py-2 px-2">Phys. Status</th>
-                <th className="text-left py-2 pl-2">ML Status</th>
+                <th className="text-right py-2 px-2">Physics Endurance</th>
+                <th className="text-right py-2 px-2">ML Endurance</th>
+                <th className="text-right py-2 px-2">Physics Range</th>
+                <th className="text-right py-2 pl-2">ML Range</th>
               </tr>
             </thead>
             <tbody>
@@ -97,15 +96,14 @@ export default function BatchPredictionPage() {
                 <tr key={i} className="border-b border-border/50">
                   <td className="py-2 pr-3 text-muted">{i + 1}</td>
                   {r.error ? (
-                    <td colSpan={6} className="text-red py-2">{r.error}</td>
+                    <td colSpan={5} className="text-red py-2">{r.error}</td>
                   ) : (
                     <>
                       <td className="text-right px-2">{r.mass_kg}</td>
-                      <td className="text-right px-2 text-cyan">{r.physics_recommended_altitude_m?.toFixed(0)} m</td>
-                      <td className="text-right px-2 text-amber">{r.ml_recommended_altitude_m?.toFixed(0)} m</td>
-                      <td className="text-right px-2">{r.physics_service_ceiling_m?.toFixed(0)} m</td>
-                      <td className="px-2"><SafetyBadge status={r.physics_safety_status} size="sm" /></td>
-                      <td className="pl-2"><SafetyBadge status={r.ml_safety_status} size="sm" /></td>
+                      <td className="text-right px-2 text-cyan">{formatDurationHHMM(r.physics_endurance_hr)}</td>
+                      <td className="text-right px-2 text-amber">{formatDurationHHMM(r.ml_endurance_hr)}</td>
+                      <td className="text-right px-2">{r.physics_range_value?.toFixed(2)}</td>
+                      <td className="text-right pl-2">{r.ml_range_value?.toFixed(2)}</td>
                     </>
                   )}
                 </tr>
