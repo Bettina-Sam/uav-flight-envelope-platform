@@ -17,11 +17,11 @@ function interpret(p: PhysicsResult) {
   if (p.wing_loading_kg_m2 > 25) notes.push(`Wing loading (${p.wing_loading_kg_m2.toFixed(1)} kg/m²) is relatively high, which raises stall speed and reduces low-speed maneuverability.`);
   else notes.push(`Wing loading (${p.wing_loading_kg_m2.toFixed(1)} kg/m²) is moderate-to-low, favoring a lower stall speed and gentler handling.`);
 
-  if (p.l_over_d > 15) notes.push(`L/D of ${p.l_over_d.toFixed(1)} at the recommended altitude is efficient — this is the main driver of the ${formatDurationHHMM(p.endurance_hr)} HH:MM endurance and ${p.range_km.toFixed(0)} km range estimate.`);
+  if (p.l_over_d > 15) notes.push(`L/D of ${p.l_over_d.toFixed(1)} is efficient — this is a main driver of the ${formatDurationHHMM(p.endurance_hr)} HH:MM endurance and ${p.range_km.toFixed(0)} range estimate.`);
   else notes.push(`L/D of ${p.l_over_d.toFixed(1)} is modest; endurance and range are being constrained more by aerodynamic efficiency than by battery capacity alone.`);
 
   const marginPct = p.power_available_w > 0 ? ((p.power_available_w - p.power_required_w) / p.power_available_w) * 100 : 0;
-  notes.push(`Power margin at the recommended altitude is ${marginPct.toFixed(0)}% (${p.power_available_w.toFixed(0)} W available vs ${p.power_required_w.toFixed(0)} W required) — this headroom is what drives the ${p.rate_of_climb_ms.toFixed(1)} m/s climb rate.`);
+  notes.push(`Power margin is ${marginPct.toFixed(0)}% (${p.power_available_w.toFixed(0)} W available vs ${p.power_required_w.toFixed(0)} W required), supporting efficient sustained flight.`);
 
   return notes;
 }
@@ -71,25 +71,18 @@ export default function PhysicsCalculatorPage() {
       <div className="eyebrow mb-3">Physics Results</div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {[
-          ['Min Altitude', p.min_altitude_m.toFixed(0), 'm'],
-          ['Max Altitude', p.max_altitude_m.toFixed(0), 'm'],
-          ['Mean Altitude', p.mean_altitude_m.toFixed(0), 'm'],
-          ['Recommended Altitude', p.recommended_altitude_m.toFixed(0), 'm'],
-          ['Service Ceiling', p.service_ceiling_m.toFixed(0), 'm'],
-          ['Absolute Ceiling', p.absolute_ceiling_m.toFixed(0), 'm'],
-          ['Rate of Climb', p.rate_of_climb_ms.toFixed(2), 'm/s'],
           ['Stall Speed', p.stall_speed_ms.toFixed(1), 'm/s'],
           ['Power Required', p.power_required_w.toFixed(0), 'W'],
           ['Power Available', p.power_available_w.toFixed(0), 'W'],
           ['Lift', p.lift_n.toFixed(1), 'N'],
           ['Drag', p.drag_n.toFixed(2), 'N'],
           ['L/D Ratio', p.l_over_d.toFixed(2), ''],
-          ['Range', p.range_km.toFixed(1), 'km'],
+          ['Range', p.range_km.toFixed(1), ''],
           ['Endurance', formatDurationHHMM(p.endurance_hr), 'HH:MM'],
           ['Wing Loading', p.wing_loading_kg_m2.toFixed(1), 'kg/m²'],
         ].map(([label, value, unit], i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>
-            <StatCard label={label as string} value={value as string} unit={unit as string} accent={label === 'Recommended Altitude' ? 'cyan' : label === 'L/D Ratio' ? 'green' : 'text'} />
+            <StatCard label={label as string} value={value as string} unit={unit as string} accent={label === 'Endurance' || label === 'Range' ? 'cyan' : label === 'L/D Ratio' ? 'green' : 'text'} />
           </motion.div>
         ))}
       </div>
@@ -104,12 +97,6 @@ export default function PhysicsCalculatorPage() {
             </li>
           ))}
         </ul>
-      </div>
-
-      {/* Why this altitude */}
-      <div className="panel p-5 mb-6">
-        <div className="eyebrow mb-2">Why This Altitude Was Recommended</div>
-        <p className="text-sm text-text leading-relaxed">{p.recommended_reason}</p>
       </div>
 
       {/* Safety assessment */}

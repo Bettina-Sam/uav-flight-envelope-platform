@@ -15,19 +15,15 @@ import { formatDurationHHMM } from '../lib/duration';
 import SafetyBadge from '../components/SafetyBadge';
 
 const TARGET_OPTIONS = [
-  { key: 'recommended_altitude_m', label: 'Recommended Altitude' },
   { key: 'range_km', label: 'Range' },
   { key: 'endurance_hr', label: 'Endurance' },
-  { key: 'rate_of_climb_ms', label: 'Rate of Climb' },
-  { key: 'l_over_d', label: 'L/D Ratio' },
-  { key: 'power_required_w', label: 'Power Required' },
 ];
 
 export default function MLPredictionPage() {
   const { result, input } = useUAV();
   const { theme } = useTheme();
   const c = getChartColors(theme);
-  const [target, setTarget] = useState('recommended_altitude_m');
+  const [target, setTarget] = useState('range_km');
   const [explanation, setExplanation] = useState<LocalExplanationResponse | null>(null);
   const [explLoading, setExplLoading] = useState(false);
 
@@ -59,7 +55,8 @@ export default function MLPredictionPage() {
     return ((mv - pv) / Math.abs(pv)) * 100;
   };
 
-  const ciRows = Object.entries(ml.confidence_intervals);
+  const ciRows = Object.entries(ml.confidence_intervals)
+    .filter(([key]) => key === 'range_km' || key === 'endurance_hr');
 
   const contribChartData = (explanation?.contributions || [])
     .slice(0, 8)
@@ -107,18 +104,11 @@ export default function MLPredictionPage() {
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-        <StatCard label="Min Altitude" value={ml.min_altitude_m.toFixed(0)} unit="m" />
-        <StatCard label="Max Altitude" value={ml.max_altitude_m.toFixed(0)} unit="m" />
-        <StatCard label="Mean Altitude" value={ml.mean_altitude_m.toFixed(0)} unit="m" sub="(min+max)/2 — informational only" />
-        <StatCard label="Recommended Altitude" value={ml.recommended_altitude_m.toFixed(0)} unit="m" accent="cyan" />
-        <StatCard label="Service Ceiling" value={ml.service_ceiling_m.toFixed(0)} unit="m" />
-        <StatCard label="Absolute Ceiling" value={ml.absolute_ceiling_m.toFixed(0)} unit="m" />
-        <StatCard label="Rate of Climb" value={ml.rate_of_climb_ms.toFixed(2)} unit="m/s" />
         <StatCard label="Power Required" value={ml.power_required_w.toFixed(0)} unit="W" />
         <StatCard label="Lift" value={ml.lift_n.toFixed(1)} unit="N" />
         <StatCard label="Drag" value={ml.drag_n.toFixed(2)} unit="N" />
         <StatCard label="L/D Ratio" value={ml.l_over_d.toFixed(2)} accent="green" />
-        <StatCard label="Range" value={ml.range_km.toFixed(1)} unit="km" />
+        <StatCard label="Range" value={ml.range_km.toFixed(1)} />
         <StatCard label="Endurance" value={formatDurationHHMM(ml.endurance_hr)} unit="HH:MM" />
       </div>
 
@@ -160,7 +150,7 @@ export default function MLPredictionPage() {
           <Link to="/comparison" className="text-cyan font-mono text-[11px] uppercase tracking-wider">Full comparison →</Link>
         </div>
         <div className="grid sm:grid-cols-3 gap-3 font-mono text-xs">
-          {(['recommended_altitude_m', 'range_km', 'endurance_hr'] as const).map((key) => {
+          {(['range_km', 'endurance_hr'] as const).map((key) => {
             const d = diffFor(key as any);
             const color = Math.abs(d) < 5 ? 'text-green' : Math.abs(d) < 15 ? 'text-amber' : 'text-red';
             return (
@@ -177,12 +167,10 @@ export default function MLPredictionPage() {
       <div className="panel p-5 mb-8">
         <div className="eyebrow mb-2">Engineering Explanation</div>
         <p className="text-sm text-text leading-relaxed">
-          The {ml.model_used} surrogate was trained on 6,000 physics-generated configurations and
-          reproduces the physics engine's recommended altitude to within roughly{' '}
-          {ciRows.find(([k]) => k === 'recommended_altitude_m')?.[1].rmse.toFixed(0) ?? '—'} m RMSE
-          on held-out data. Because the ML model has no built-in physical constraints, always treat
-          the Physics Engine result as ground truth and use the ML output as a fast, approximate
-          cross-check — the comparison view below flags any large disagreement between the two.
+          The {ml.model_used} surrogate estimates range and endurance from the same UAV inputs.
+          Because the ML model has no built-in physical constraints, use the Physics Engine as the
+          engineering reference and the ML output as a fast cross-check. The comparison view flags
+          meaningful disagreement between the two retained mission outputs.
         </p>
       </div>
 
@@ -227,8 +215,8 @@ export default function MLPredictionPage() {
       </div>
 
       <div className="mt-8">
-        <Link to="/dashboard" className="text-cyan font-mono text-xs uppercase tracking-wider">
-          View Flight Envelope Dashboard →
+        <Link to="/comparison" className="text-cyan font-mono text-xs uppercase tracking-wider">
+          Compare Range &amp; Endurance →
         </Link>
       </div>
     </div>

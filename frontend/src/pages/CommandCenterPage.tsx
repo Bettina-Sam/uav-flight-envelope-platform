@@ -2,15 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import html2canvas from 'html2canvas';
-import { Activity, Fuel, Gauge, Plane, Sliders, GitCompare, Download, Loader2, RotateCcw, Timer } from 'lucide-react';
+import { Activity, Fuel, Route, BatteryCharging, Sliders, GitCompare, Download, Loader2, RotateCcw } from 'lucide-react';
 import { useUAV } from '../context/UAVContext';
 import { predict, getDesignScore } from '../api/client';
 import { PredictResponse, DesignScoreResponse, UAVInput } from '../types';
 import { listSavedConfigs, SavedConfig } from '../lib/savedConfigs';
 import { narrateDashboard } from '../lib/narrationText';
-import FlightProfileVisualizer from '../components/FlightProfileVisualizer';
-import AltitudeGauge from '../components/AltitudeGauge';
-import SafetyBadge from '../components/SafetyBadge';
 import StatCard from '../components/StatCard';
 import NarrateButton from '../components/NarrateButton';
 import { drawFlightCard } from '../lib/flightCard';
@@ -29,6 +26,45 @@ const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; s
 
 const TAPAS_BASELINE_RANGE_KM = 158.21;
 const FUEL_DENSITY_KG_PER_L = 0.8;
+
+function PerformanceVisual({
+  label, value, numericValue, ghostValue, ghostLabel, icon: Icon,
+}: {
+  label: string;
+  value: string;
+  numericValue: number;
+  ghostValue?: number;
+  ghostLabel?: string;
+  icon: typeof Route;
+}) {
+  const scaleMax = Math.max(numericValue, ghostValue ?? 0, 1) * 1.1;
+  const currentWidth = Math.min(100, (numericValue / scaleMax) * 100);
+  const ghostWidth = ghostValue == null ? 0 : Math.min(100, (ghostValue / scaleMax) * 100);
+  return (
+    <div className="panel p-6">
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="eyebrow flex items-center gap-2"><Icon className="w-4 h-4 text-cyan" /> {label}</div>
+        <div className="font-mono text-3xl text-cyan">{value}</div>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <div className="flex justify-between text-[10px] font-mono text-muted mb-1.5"><span>Current</span><span>{numericValue.toFixed(2)}</span></div>
+          <div className="h-4 rounded-full bg-border/60 overflow-hidden">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${currentWidth}%` }} className="h-full bg-cyan rounded-full" />
+          </div>
+        </div>
+        {ghostValue != null && (
+          <div>
+            <div className="flex justify-between text-[10px] font-mono text-muted mb-1.5"><span>{ghostLabel || 'Ghost'}</span><span>{ghostValue.toFixed(2)}</span></div>
+            <div className="h-3 rounded-full bg-border/60 overflow-hidden">
+              <motion.div initial={{ width: 0 }} animate={{ width: `${ghostWidth}%` }} className="h-full bg-amber rounded-full" />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function FuelGauge({ capacityL, estimatedBurnKgHr }: { capacityL: number; estimatedBurnKgHr: number }) {
   const capped = Math.max(0, Math.min(1, capacityL / 500));
@@ -177,7 +213,7 @@ export default function CommandCenterPage() {
         </div>
       </div>
       <p className="text-muted text-sm mb-6 max-w-2xl">
-        Everything at a glance: live flight profile, altitude envelope, design score, and key stats
+        Range and endurance at a glance
         — with live tuning sliders and an optional side-by-side ghost comparison.
       </p>
 
@@ -189,51 +225,29 @@ export default function CommandCenterPage() {
         </div>
         <div className="text-[10px] font-mono text-muted">{new Date().toLocaleString()}</div>
       </div>
-      <div className="grid lg:grid-cols-3 gap-4 mb-6">
-        <div className="lg:col-span-2 panel p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="eyebrow">Flight Profile</div>
-              <div className="text-[11px] text-muted mt-1">Climb to cruise, hold recommended altitude, then descend.</div>
-            </div>
-            <SafetyBadge status={p.safety_status} />
-          </div>
-          <FlightProfileVisualizer
-            minAltitude={p.min_altitude_m} maxAltitude={p.max_altitude_m}
-            recommendedAltitude={p.recommended_altitude_m} serviceCeiling={p.service_ceiling_m}
-            cruiseSpeedMs={liveInput.cruise_speed_ms} rateOfClimbMs={p.rate_of_climb_ms}
-            safetyStatus={p.safety_status as any} numEngines={1}
-          />
+      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <PerformanceVisual
+          label="Endurance"
+          value={formatDurationHHMM(p.endurance_hr)}
+          numericValue={p.endurance_hr}
+          ghostValue={ghostResult?.physics.endurance_hr}
+          ghostLabel={savedConfigs.find((c) => c.id === ghostId)?.name}
+          icon={BatteryCharging}
+        />
+        <PerformanceVisual
+          label="Range"
+          value={p.range_km.toFixed(2)}
+          numericValue={p.range_km}
+          ghostValue={ghostResult?.physics.range_km}
+          ghostLabel={savedConfigs.find((c) => c.id === ghostId)?.name}
+          icon={Route}
+        />
+        <div className="panel p-5">
+          <div className="eyebrow flex items-center gap-2 mb-3"><Activity className="w-4 h-4 text-cyan" /> Range Reference</div>
+          <div className="font-mono text-3xl text-amber">{tapasRangePct.toFixed(0)}%</div>
+          <p className="text-[11px] text-muted mt-2">Relative to the IUAS-MALE reference range value.</p>
         </div>
-        <div className="panel p-5 space-y-4">
-          <AltitudeGauge
-            label="Altitude Envelope" min={p.min_altitude_m} max={p.max_altitude_m} recommended={p.recommended_altitude_m} serviceCeiling={p.service_ceiling_m}
-            ghost={ghostResult ? {
-              min: ghostResult.physics.min_altitude_m, max: ghostResult.physics.max_altitude_m,
-              recommended: ghostResult.physics.recommended_altitude_m, serviceCeiling: ghostResult.physics.service_ceiling_m,
-              label: savedConfigs.find((c) => c.id === ghostId)?.name || 'Ghost',
-            } : undefined}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Plane className="w-3 h-3" /> Phase</div>
-              <div className="font-mono text-sm text-cyan mt-1">Climb / Cruise / Descend</div>
-            </div>
-            <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Timer className="w-3 h-3" /> Endurance</div>
-              <div className="font-mono text-sm text-text mt-1">{formatDurationHHMM(p.endurance_hr)} <span className="text-[9px] text-muted">HH:MM</span></div>
-            </div>
-            <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Gauge className="w-3 h-3" /> T/W</div>
-              <div className="font-mono text-sm text-text mt-1">{liveInput.thrust_to_weight.toFixed(2)}</div>
-            </div>
-            <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Activity className="w-3 h-3" /> IUAS-MALE Scale</div>
-              <div className="font-mono text-sm text-amber mt-1">{tapasRangePct.toFixed(0)}% range</div>
-            </div>
-          </div>
-          {fuelConfig && <FuelGauge capacityL={liveInput.fuel_capacity_l} estimatedBurnKgHr={fuelBurnKgHr} />}
-        </div>
+        {fuelConfig && <div className="panel p-5"><FuelGauge capacityL={liveInput.fuel_capacity_l} estimatedBurnKgHr={fuelBurnKgHr} /></div>}
       </div>
 
       {score && (
@@ -249,9 +263,9 @@ export default function CommandCenterPage() {
           </div>
           <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-[280px]">
             <StatCard label="Endurance" value={formatDurationHHMM(p.endurance_hr)} unit="HH:MM" />
-            <StatCard label="Range" value={p.range_km.toFixed(0)} unit="km" />
+            <StatCard label="Range" value={p.range_km.toFixed(2)} />
             <StatCard label="L/D" value={p.l_over_d.toFixed(2)} accent="green" />
-            <StatCard label="Rate of Climb" value={p.rate_of_climb_ms.toFixed(1)} unit="m/s" />
+            <StatCard label="Fuel Burn" value={fuelBurnKgHr.toFixed(1)} unit="kg/h" />
           </div>
         </div>
       )}
@@ -311,7 +325,7 @@ export default function CommandCenterPage() {
                 </tr>
               </thead>
               <tbody>
-                {(['recommended_altitude_m', 'endurance_hr', 'range_km', 'l_over_d', 'rate_of_climb_ms'] as const).map((k) => (
+                {(['endurance_hr', 'range_km'] as const).map((k) => (
                   <tr key={k} className="border-b border-border/50">
                     <td className="py-2 pr-4 text-text">{k.replace(/_/g, ' ')}</td>
                     <td className="text-right px-3 text-cyan">{k === 'endurance_hr' ? formatDurationHHMM(liveResult.physics[k]) : (liveResult.physics[k] as number).toFixed(2)}</td>
