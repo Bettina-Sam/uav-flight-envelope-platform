@@ -12,6 +12,7 @@ import StatCard from '../components/StatCard';
 import NarrateButton from '../components/NarrateButton';
 import { drawFlightCard } from '../lib/flightCard';
 import { formatDurationHHMM } from '../lib/duration';
+import RangeEndurance3D from '../components/RangeEndurance3D';
 
 const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; step: number; unit: string }[] = [
   { key: 'mass_kg', label: 'Mass', min: 7, max: 3000, step: 1, unit: 'kg' },
@@ -225,7 +226,12 @@ export default function CommandCenterPage() {
         </div>
         <div className="text-[10px] font-mono text-muted">{new Date().toLocaleString()}</div>
       </div>
-      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid lg:grid-cols-3 gap-4 mb-6">
+        <div className="lg:col-span-2 panel p-4">
+          <div className="eyebrow mb-3">3D Mission Performance</div>
+          <RangeEndurance3D range={p.range_km} enduranceHours={p.endurance_hr} cruiseSpeedMs={liveInput.cruise_speed_ms} />
+        </div>
+        <div className="space-y-4">
         <PerformanceVisual
           label="Endurance"
           value={formatDurationHHMM(p.endurance_hr)}
@@ -242,12 +248,13 @@ export default function CommandCenterPage() {
           ghostLabel={savedConfigs.find((c) => c.id === ghostId)?.name}
           icon={Route}
         />
+        </div>
         <div className="panel p-5">
           <div className="eyebrow flex items-center gap-2 mb-3"><Activity className="w-4 h-4 text-cyan" /> Range Reference</div>
           <div className="font-mono text-3xl text-amber">{tapasRangePct.toFixed(0)}%</div>
           <p className="text-[11px] text-muted mt-2">Relative to the IUAS-MALE reference range value.</p>
         </div>
-        {fuelConfig && <div className="panel p-5"><FuelGauge capacityL={liveInput.fuel_capacity_l} estimatedBurnKgHr={fuelBurnKgHr} /></div>}
+        {fuelConfig && <div className="panel p-5 lg:col-span-2"><FuelGauge capacityL={liveInput.fuel_capacity_l} estimatedBurnKgHr={fuelBurnKgHr} /></div>}
       </div>
 
       {score && (

@@ -41,7 +41,9 @@ def _make_comparison_chart(comparison: list) -> io.BytesIO:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    keys = [c["target"] for c in comparison if c["target"] not in ("lift_n", "drag_n")]
+    excluded = {"min_altitude_m", "max_altitude_m", "mean_altitude_m", "recommended_altitude_m",
+                "service_ceiling_m", "absolute_ceiling_m", "lift_n", "drag_n"}
+    keys = [c["target"] for c in comparison if c["target"] not in excluded]
     physics_vals = [c["physics_value"] for c in comparison if c["target"] in keys]
     ml_vals = [c["ml_value"] for c in comparison if c["target"] in keys]
     labels = [k.replace("_", "\n") for k in keys]
@@ -139,9 +141,8 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
     ld = physics_result.get("l_over_d", 0)
     summary_bits = [
         f"This {physics_result.get('mass_kg', uav_input.get('mass_kg'))} kg-class design carries "
-        f"{uav_input.get('payload_kg')} kg of payload and is recommended to cruise at "
-        f"{physics_result.get('recommended_altitude_m', 0):.0f} m, yielding an estimated "
-        f"{physics_result.get('endurance_hr', 0):.2f} hr endurance and {physics_result.get('range_km', 0):.0f} km range "
+        f"{uav_input.get('payload_kg')} kg of payload and yields an estimated "
+        f"{physics_result.get('endurance_hr', 0):.2f} hr endurance and a {physics_result.get('range_km', 0):.2f} range value "
         f"at an L/D of {ld:.1f}."
     ]
     if design_score:
@@ -236,16 +237,13 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
         "Computed directly from ISA atmosphere and steady-level-flight aircraft-performance "
         "equations \u2014 transparent, auditable ground truth (no ML involved).", small))
     elements.append(Spacer(1, 4))
-    phys_keys = ["min_altitude_m", "max_altitude_m", "mean_altitude_m", "recommended_altitude_m",
-                 "service_ceiling_m", "absolute_ceiling_m", "rate_of_climb_ms", "range_km",
+    phys_keys = ["rate_of_climb_ms", "range_km",
                  "endurance_hr", "power_required_w", "lift_n", "drag_n", "l_over_d",
                  "stall_speed_ms", "wing_loading_kg_m2", "power_loading_w_kg", "aspect_ratio"]
     phys_rows = [["Quantity", "Value"]] + [[k.replace("_", " ").title(), _fmt(physics_result.get(k))] for k in phys_keys]
     t2 = Table(phys_rows, colWidths=[85 * mm, 85 * mm])
     t2.setStyle(_table_style())
     elements.append(t2)
-    elements.append(Spacer(1, 6))
-    elements.append(Paragraph(f"<b>Why this altitude was recommended:</b> {physics_result.get('recommended_reason','')}", body))
 
     # --- 4. Engine-out safety analysis ---
     eo = physics_result.get("engine_out")
@@ -281,8 +279,7 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
         f"confidence: <b>{ml_result.get('safety_confidence', 0) * 100:.1f}%</b> \u00b7 "
         f"Reliability score: <b>{ml_result.get('reliability_score', 0) * 100:.0f}%</b>.", small))
     elements.append(Spacer(1, 4))
-    ml_keys = ["min_altitude_m", "max_altitude_m", "mean_altitude_m", "recommended_altitude_m",
-               "service_ceiling_m", "absolute_ceiling_m", "rate_of_climb_ms", "range_km",
+    ml_keys = ["rate_of_climb_ms", "range_km",
                "endurance_hr", "power_required_w", "lift_n", "drag_n", "l_over_d",
                "safety_status", "safety_confidence", "model_used"]
     ml_rows = [["Quantity", "Value"]] + [[k.replace("_", " ").title(), _fmt(ml_result.get(k))] for k in ml_keys]
@@ -293,7 +290,11 @@ def build_pdf_report(uav_input: dict, physics_result: dict, ml_result: dict, com
     # --- 6. Physics vs ML comparison (table + chart) ---
     elements.append(Paragraph("6. Physics vs ML \u2014 Comparison", h2))
     comp_rows = [["Target", "Physics", "ML", "Diff %"]]
+    altitude_targets = {"min_altitude_m", "max_altitude_m", "mean_altitude_m", "recommended_altitude_m",
+                        "service_ceiling_m", "absolute_ceiling_m"}
     for c in comparison:
+        if c["target"] in altitude_targets:
+            continue
         comp_rows.append([c["target"].replace("_", " ").title(), _fmt(c["physics_value"]),
                            _fmt(c["ml_value"]), f"{c['difference_pct']:.2f}%"])
     t5 = Table(comp_rows, colWidths=[70 * mm, 40 * mm, 40 * mm, 20 * mm])
@@ -455,13 +456,14 @@ def build_csv_report(uav_input: dict, physics_result: dict, ml_result: dict) -> 
     writer.writerow(["Section", "Key", "Value"])
     for k, v in uav_input.items():
         writer.writerow(["Input", k, v])
+    altitude_keys = {"min_altitude_m", "max_altitude_m", "mean_altitude_m", "recommended_altitude_m",
+                     "service_ceiling_m", "absolute_ceiling_m", "recommended_reason"}
     for k, v in physics_result.items():
-        if k in ("envelope_profile", "warnings", "engine_out"):
+        if k in ("envelope_profile", "warnings", "engine_out") or k in altitude_keys:
             continue
         writer.writerow(["Physics", k, v])
-    if physics_result.get("engine_out"):
-        for k, v in physics_result["engine_out"].items():
-            writer.writerow(["EngineOut", k, v])
     for k, v in ml_result.items():
+        if k in altitude_keys:
+            continue
         writer.writerow(["ML", k, v])
     return buf.getvalue()

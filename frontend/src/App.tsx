@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { UAVProvider } from './context/UAVContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -72,6 +73,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <UAVProvider>
         <div className="min-h-screen flex flex-col relative">
           <AnimatedBackground />
@@ -82,6 +84,7 @@ export default function App() {
           <Footer />
         </div>
       </UAVProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

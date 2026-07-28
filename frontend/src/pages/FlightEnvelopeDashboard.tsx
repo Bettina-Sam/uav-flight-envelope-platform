@@ -12,7 +12,6 @@ import { getChartColors } from '../lib/chartTheme';
 import { playSafetyTone } from '../lib/sound';
 import { getDesignScore } from '../api/client';
 import { DesignScoreResponse } from '../types';
-import AltitudeGauge from '../components/AltitudeGauge';
 import SafetyBadge from '../components/SafetyBadge';
 import StatCard from '../components/StatCard';
 import { formatDurationHHMM } from '../lib/duration';
@@ -82,37 +81,17 @@ export default function FlightEnvelopeDashboard() {
         <SafetyBadge status={physics.safety_status} size="lg" />
       </div>
       <p className="text-muted text-sm mb-8 max-w-2xl">
-        Full altitude sweep of steady-level-flight performance, with the physics engine and ML
-        surrogate shown side by side.
+        Physics and ML performance results shown side by side, with aircraft-altitude recommendation
+        cards intentionally excluded.
       </p>
 
-      <motion.div {...fadeUp} transition={{ duration: 0.35 }} className="grid lg:grid-cols-3 gap-4 mb-8">
-        <div className="panel p-5 flex flex-col items-center justify-center">
-          <AltitudeGauge
-            min={physics.min_altitude_m}
-            max={physics.max_altitude_m}
-            recommended={physics.recommended_altitude_m}
-            serviceCeiling={physics.service_ceiling_m}
-            label="Recommended Altitude (Physics)"
-          />
-        </div>
-        <div className="panel p-5 flex flex-col items-center justify-center">
-          <AltitudeGauge
-            min={ml.min_altitude_m}
-            max={ml.max_altitude_m}
-            recommended={ml.recommended_altitude_m}
-            serviceCeiling={ml.service_ceiling_m}
-            label="Recommended Altitude (ML)"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Service Ceiling" value={physics.service_ceiling_m.toFixed(0)} unit="m" />
-          <StatCard label="Absolute Ceiling" value={physics.absolute_ceiling_m.toFixed(0)} unit="m" />
-          <StatCard label="Mean Altitude" value={physics.mean_altitude_m.toFixed(0)} unit="m" sub="midpoint, informational" />
-          <StatCard label="Endurance" value={formatDurationHHMM(physics.endurance_hr)} unit="HH:MM" />
-          <StatCard label="Range" value={physics.range_km.toFixed(1)} unit="km" />
-          <StatCard label="L/D @ Recommended" value={physics.l_over_d.toFixed(2)} accent="green" />
-        </div>
+      <motion.div {...fadeUp} transition={{ duration: 0.35 }} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+        <StatCard label="Endurance (Physics)" value={formatDurationHHMM(physics.endurance_hr)} unit="HH:MM" />
+        <StatCard label="Endurance (ML)" value={formatDurationHHMM(ml.endurance_hr)} unit="HH:MM" />
+        <StatCard label="Range (Physics)" value={physics.range_km.toFixed(2)} />
+        <StatCard label="Range (ML)" value={ml.range_km.toFixed(2)} />
+        <StatCard label="L/D Ratio" value={physics.l_over_d.toFixed(2)} accent="green" />
+        <StatCard label="Power Required" value={physics.power_required_w.toFixed(0)} unit="W" />
       </motion.div>
 
       {score && (

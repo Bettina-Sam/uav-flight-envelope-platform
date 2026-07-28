@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { speak, stopSpeaking, isNarrationSupported, isSpeaking, VOICE_LANGS } from '../lib/voiceNarration';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   text: string;
@@ -11,9 +12,14 @@ interface Props {
  * browser's built-in TTS. Shows nothing if the browser doesn't support
  * SpeechSynthesis rather than a dead button. */
 export default function NarrateButton({ text, label = 'Narrate this page' }: Props) {
+  const { speechCode } = useLanguage();
   const [speaking, setSpeaking] = useState(false);
-  const [lang, setLang] = useState('en-US');
+  const [lang, setLang] = useState(speechCode);
   const supported = isNarrationSupported();
+
+  useEffect(() => {
+    setLang(speechCode);
+  }, [speechCode]);
 
   useEffect(() => {
     if (!supported) return;

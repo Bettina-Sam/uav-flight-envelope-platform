@@ -6,6 +6,8 @@ import InstallButton from './InstallButton';
 import ThemeToggle from './ThemeToggle';
 import SoundToggle from './SoundToggle';
 import PageNarrator from './PageNarrator';
+import LanguageSelect from './LanguageSelect';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LinkItem { to: string; label: string }
 interface GroupItem { key: string; label: string; links: LinkItem[] }
@@ -29,7 +31,7 @@ const GROUPS: GroupItem[] = [
       { to: '/dashboard', label: 'Envelope Dashboard' },
       { to: '/command-center', label: 'Command Center' },
       { to: '/comparison', label: 'Physics vs ML' },
-      { to: '/performance', label: 'Performance (Altitude / Range / Endurance)' },
+      { to: '/performance', label: 'Performance (Range / Endurance)' },
       { to: '/uncertainty', label: 'Uncertainty Quantification' },
       { to: '/feature-importance', label: 'Feature Importance' },
       { to: '/sensitivity', label: 'Sensitivity' },
@@ -58,6 +60,7 @@ function useIsGroupActive(links: LinkItem[]) {
 }
 
 function DesktopDropdown({ group }: { group: GroupItem }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isActive = useIsGroupActive(group.links);
@@ -84,7 +87,7 @@ function DesktopDropdown({ group }: { group: GroupItem }) {
           isActive ? 'text-cyan bg-cyan/10' : 'text-muted hover:text-text'
         }`}
       >
-        {group.label}
+        {t(group.label)}
         <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
@@ -107,7 +110,7 @@ function DesktopDropdown({ group }: { group: GroupItem }) {
                   }`
                 }
               >
-                {l.label}
+                {t(l.label)}
               </NavLink>
             ))}
           </motion.div>
@@ -118,6 +121,7 @@ function DesktopDropdown({ group }: { group: GroupItem }) {
 }
 
 function MobileGroup({ group, onNavigate }: { group: GroupItem; onNavigate: () => void }) {
+  const { t } = useLanguage();
   const isActive = useIsGroupActive(group.links);
   const [expanded, setExpanded] = useState(isActive);
 
@@ -127,7 +131,7 @@ function MobileGroup({ group, onNavigate }: { group: GroupItem; onNavigate: () =
         onClick={() => setExpanded((e) => !e)}
         className={`w-full flex items-center justify-between px-3 py-3 ${isActive ? 'text-cyan' : 'text-text'}`}
       >
-        <span>{group.label}</span>
+        <span>{t(group.label)}</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
@@ -150,7 +154,7 @@ function MobileGroup({ group, onNavigate }: { group: GroupItem; onNavigate: () =
                   }`
                 }
               >
-                {l.label}
+                {t(l.label)}
               </NavLink>
             ))}
           </motion.div>
@@ -161,6 +165,7 @@ function MobileGroup({ group, onNavigate }: { group: GroupItem; onNavigate: () =
 }
 
 export default function Navbar() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
 
@@ -182,7 +187,7 @@ export default function Navbar() {
             end
             className={({ isActive }) => `px-3 py-2 rounded-md transition-colors ${isActive ? 'text-cyan bg-cyan/10' : 'text-muted hover:text-text'}`}
           >
-            {STANDALONE_LEFT.label}
+            {t(STANDALONE_LEFT.label)}
           </NavLink>
           {GROUPS.map((g) => <DesktopDropdown key={g.key} group={g} />)}
           {STANDALONE_RIGHT.map((l) => (
@@ -191,12 +196,13 @@ export default function Navbar() {
               to={l.to}
               className={({ isActive }) => `px-3 py-2 rounded-md transition-colors ${isActive ? 'text-cyan bg-cyan/10' : 'text-muted hover:text-text'}`}
             >
-              {l.label}
+              {t(l.label)}
             </NavLink>
           ))}
         </nav>
 
         <div className="hidden lg:flex items-center gap-2 shrink-0">
+          <LanguageSelect />
           <PageNarrator />
           <SoundToggle />
           <ThemeToggle />
@@ -223,7 +229,7 @@ export default function Navbar() {
               onClick={() => setOpen(false)}
               className={({ isActive }) => `block px-3 py-3 border-b border-border/60 ${isActive ? 'text-cyan bg-cyan/10' : 'text-text'}`}
             >
-              {STANDALONE_LEFT.label}
+              {t(STANDALONE_LEFT.label)}
             </NavLink>
             {GROUPS.map((g) => <MobileGroup key={g.key} group={g} onNavigate={() => setOpen(false)} />)}
             {STANDALONE_RIGHT.map((l) => (
@@ -233,10 +239,10 @@ export default function Navbar() {
                 onClick={() => setOpen(false)}
                 className={({ isActive }) => `block px-3 py-3 border-b border-border/60 last:border-b-0 ${isActive ? 'text-cyan bg-cyan/10' : 'text-text'}`}
               >
-                {l.label}
+                {t(l.label)}
               </NavLink>
             ))}
-            <div className="px-3 py-3 flex items-center gap-2 flex-wrap"><PageNarrator /><SoundToggle /><ThemeToggle /><InstallButton compact /></div>
+            <div className="px-3 py-3 flex items-center gap-2 flex-wrap"><LanguageSelect /><PageNarrator /><SoundToggle /><ThemeToggle /><InstallButton compact /></div>
           </motion.nav>
         )}
       </AnimatePresence>

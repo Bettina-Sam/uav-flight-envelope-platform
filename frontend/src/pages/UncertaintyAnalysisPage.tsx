@@ -15,7 +15,6 @@ import { MonteCarloResponse, EpistemicResponse, ScatterResponse, FeatureImportan
 const TARGET_OPTIONS = [
   { key: 'endurance_hr', label: 'Endurance', unit: 'hr' },
   { key: 'range_km', label: 'Range', unit: 'km' },
-  { key: 'recommended_altitude_m', label: 'Recommended Altitude', unit: 'm' },
 ] as const;
 
 const MODEL_COLORS: Record<string, string> = {

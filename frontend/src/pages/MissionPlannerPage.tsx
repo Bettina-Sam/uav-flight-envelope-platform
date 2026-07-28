@@ -215,16 +215,28 @@ export default function MissionPlannerPage() {
 
   const profileData = useMemo(() => {
     if (!result) return [];
+    if (result.waypoints.length === 1) {
+      const wp = result.waypoints[0];
+      return [{ distance: 0, terrain: Math.round(wp.terrain_elevation_m), minSafe: Math.round(wp.min_safe_altitude_m) }];
+    }
+    const samples: { distance: number; terrain: number; minSafe: number }[] = [];
     let cumulative = 0;
-    return result.waypoints.map((wp, i) => {
-      if (i > 0) cumulative += result.legs[i - 1]?.distance_km ?? 0;
-      return {
-        distance: Number(cumulative.toFixed(1)),
-        terrain: Math.round(wp.terrain_elevation_m),
-        minSafe: Math.round(wp.min_safe_altitude_m),
-        cruise: Math.round(result.cruise_altitude_m),
-      };
+    result.legs.forEach((leg, i) => {
+      const a = result.waypoints[i];
+      const b = result.waypoints[i + 1];
+      if (!a || !b) return;
+      for (let step = 0; step <= 12; step += 1) {
+        if (i > 0 && step === 0) continue;
+        const t = step / 12;
+        samples.push({
+          distance: Number((cumulative + leg.distance_km * t).toFixed(2)),
+          terrain: Math.round(a.terrain_elevation_m + (b.terrain_elevation_m - a.terrain_elevation_m) * t),
+          minSafe: Math.round(a.min_safe_altitude_m + (b.min_safe_altitude_m - a.min_safe_altitude_m) * t),
+        });
+      }
+      cumulative += leg.distance_km;
     });
+    return samples;
   }, [result]);
 
   return (
@@ -537,7 +549,7 @@ export default function MissionPlannerPage() {
                 <YAxis stroke={c.axis} fontSize={10} label={{ value: 'Altitude (m)', angle: -90, position: 'insideLeft', fill: c.axis, fontSize: 10 }} />
                 <Tooltip contentStyle={{ background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, color: c.tooltipText, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <ReferenceLine y={result.cruise_altitude_m} stroke={c.cyan} strokeDasharray="4 4" label={{ value: 'Cruise', fill: c.cyan, fontSize: 10 }} />
+                <ReferenceLine y={result.cruise_altitude_m} stroke={c.cyan} strokeDasharray="4 4" label={{ value: 'Safe travel height', fill: c.cyan, fontSize: 10 }} />
                 <Area type="monotone" dataKey="terrain" name="Terrain elevation" stroke={c.amber} fill={c.amber} fillOpacity={0.25} />
                 <Area type="monotone" dataKey="minSafe" name="Min safe altitude" stroke={c.red} fill="none" strokeDasharray="3 3" />
               </AreaChart>

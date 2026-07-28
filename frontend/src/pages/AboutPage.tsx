@@ -17,7 +17,7 @@ const EQUATIONS = [
   { group: 'Electric', name: 'Electric endurance', eq: 'E = Eb,use / [Preq / ηprop(h)]' },
   { group: 'Fuel', name: 'Fuel mass', eq: 'mfuel = Vfuel × 0.8 kg/L' },
   { group: 'Fuel', name: 'Breguet endurance', eq: 'E = [1/(SFC·g₀)] (L/D) ln(mi/mf)' },
-  { group: 'Range', name: 'Still-air range', eq: 'R = Vcruise × E' },
+  { group: 'Range', name: 'Configured range value', eq: 'Rvalue = Vcruise (m/s) × E (hours)' },
 ];
 
 const PARAMS = [
@@ -38,9 +38,9 @@ export default function AboutPage() {
       <div className="eyebrow mb-2">Methodology</div>
       <h1 className="font-display text-3xl font-semibold mb-3">About &amp; Formula Reference</h1>
       <p className="text-sm text-muted leading-relaxed mb-10 max-w-3xl">
-        This page documents the equations used by the current backend—not the legacy mini-UAV
-        dataset schema. The platform calculates a physics flight envelope and compares it with an
-        ML surrogate. Results are preliminary engineering estimates, not certified flight limits.
+        This page documents the equations used by the current backend. The platform compares
+        physics and machine-learning estimates for range, endurance, and other non-altitude
+        performance parameters. Results are preliminary engineering estimates, not certified limits.
       </p>
 
       <section className="mb-10">
@@ -48,8 +48,8 @@ export default function AboutPage() {
         <div className="grid md:grid-cols-3 gap-3 text-xs">
           {[
             ['1 · Translate inputs', 'L/D is used to estimate aspect ratio and Cᴸmax. T/W, mass, speed, and efficiency estimate installed motor power.'],
-            ['2 · Sweep altitude', 'ISA density is evaluated from 0–11 km. Lift, drag, stall margin, power margin, and climb rate are recomputed at every point.'],
-            ['3 · Select and report', 'Feasible points below service ceiling are scored. Endurance and range are then evaluated at the recommended altitude.'],
+            ['2 · Evaluate performance', 'The physics engine evaluates lift, drag, power demand, climb capability, and endurance from the configured operating point.'],
+            ['3 · Compare and report', 'The same non-altitude outputs are compared with the ML surrogate and included in charts and reports.'],
           ].map(([title, text]) => (
             <div key={title} className="panel p-4">
               <div className="font-mono text-cyan mb-2">{title}</div>
@@ -112,18 +112,6 @@ export default function AboutPage() {
               </tr>
             ))}</tbody>
           </table>
-        </div>
-      </section>
-
-      <section className="mb-10">
-        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Recommended altitude and ceilings</h2>
-        <div className="panel p-5 text-sm text-muted leading-relaxed space-y-3">
-          <p>Service ceiling is interpolated where ROC reaches 0.508 m/s (100 ft/min); absolute ceiling is where ROC reaches zero.</p>
-          <p>
-            Recommended altitude is not the midpoint. Feasible candidates at or below the service
-            ceiling are scored as 35% L/D, 30% ROC, 20% power margin, and 15% inverse drag in fuel
-            mode or inverse power required in electric mode.
-          </p>
         </div>
       </section>
 

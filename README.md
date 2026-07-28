@@ -1,8 +1,8 @@
-# UAV Flight Envelope Prediction & Altitude Optimization Platform
+# UAV Range, Endurance & Mission Analysis Platform
 
-A physics-informed machine learning platform that predicts the feasible flight envelope
-and recommended cruise altitude of a **twin-engine, fixed-wing, propeller-driven electric
-UAV** — built for a DRDO internship prototype.
+A physics-informed machine learning platform for comparing UAV range, endurance, and
+other non-altitude performance parameters, with terrain-aware mission planning for a
+**twin-engine, fixed-wing UAV** — built for a DRDO internship prototype.
 
 > **Status:** research prototype. Trained on synthetic (physics-generated) data, not real
 > flight-test telemetry — but built with a real-data pipeline already in place (see
@@ -11,6 +11,18 @@ UAV** — built for a DRDO internship prototype.
 
 ## What's new in this revision
 
+- **Altitude-prediction UI removed without removing terrain safety.** Aircraft minimum,
+  maximum, mean, and recommended-altitude predictions are excluded from dashboards,
+  ML comparisons, uncertainty views, and generated reports. Mission Planner still shows
+  real terrain elevation and terrain-plus-buffer safe travel height.
+- **Mission Control visual restored.** The Command Center includes an animated
+  three-dimensional range/endurance mission scene plus live tuning and ghost comparison.
+- **Full non-altitude Physics-vs-ML comparison.** Endurance, range, rate of climb,
+  power required, lift, drag, and L/D are shown; only altitude targets are excluded.
+- **Mission-map aircraft are independent.** Every saved surveillance/mission route has
+  its own animated aircraft instead of sharing one aircraft across combined routes.
+- **Language control.** English, Hindi, and Tamil are available from the navbar for
+  shared navigation, with the selected language also driving narration voice selection.
 - **Corrected fuel endurance and duration display.** The IUAS-MALE reference SFC is
   calibrated to `4.0 × 10⁻⁶ kg/(N·s)`. With the reference aircraft, 30 L of fuel,
   and the modeled 20% reserve, the physics engine predicts approximately one hour
@@ -31,9 +43,8 @@ UAV** — built for a DRDO internship prototype.
   `train_model.py` let you switch from synthetic → real → blended data with zero code
   changes elsewhere. See "Using real flight-test data" below.
 - **Light mode by default**, with a persistent dark-mode toggle in the navbar.
-- **3D flight visualization** on the dashboard — an orbit-controllable 3D scene showing
-  the twin-engine aircraft positioned at its recommended altitude within the swept
-  operating column (built with three.js / react-three-fiber).
+- **3D mission visualization** in Mission Control — an animated perspective scene
+  showing mission progress using range, endurance, and cruise speed.
 - **Richer PDF report** — branded header/footer, page numbers, aircraft configuration
   summary, engine-out section, and an embedded physics-vs-ML comparison chart.
 - **More robust install button** — includes manual "Add to Home Screen" instructions on
@@ -43,17 +54,13 @@ UAV** — built for a DRDO internship prototype.
 
 | # | Output | Source |
 |---|---|---|
-| 1 | Minimum operating altitude | Physics + ML |
-| 2 | Maximum operating altitude | Physics + ML |
-| 3 | Recommended altitude (engineering-optimized, **not** a simple average) | Physics + ML |
-| 4 | Mean altitude (midpoint of min/max, shown separately for reference) | Physics + ML |
-| 5 | Service ceiling / Absolute ceiling | Physics + ML |
-| 6 | Rate of climb | Physics + ML |
-| 7 | Range / Endurance | Physics + ML |
-| 8 | Power required / available | Physics + ML |
-| 9 | Lift / Drag / L-over-D | Physics + ML |
-| 10 | Safety status (SAFE / CAUTION / CRITICAL) | Physics (rule-based) + ML (classifier) |
-| 11 | **Engine-out contingency** (single-engine-inoperative ceiling & climb) | Physics only |
+| 1 | Endurance (`HH:MM` in the UI) | Physics + ML |
+| 2 | Configured range value (`cruise speed in m/s × endurance in hours`) | Physics + ML |
+| 3 | Rate of climb | Physics + ML |
+| 4 | Power required / available | Physics + ML |
+| 5 | Lift / Drag / L-over-D | Physics + ML |
+| 6 | Safety status (SAFE / CAUTION / CRITICAL) | Physics (rule-based) + ML (classifier) |
+| 7 | Terrain elevation and terrain-plus-buffer safe route height | Mission planning |
 
 ## Architecture
 
@@ -154,11 +161,10 @@ dataset/model is only needed if you want to change the sampling bounds or retrai
 - `docs/DEMO_SCRIPT.md` — a script for live-demoing this to your guide
 - `docs/VIVA_QA.md` — anticipated viva questions and model answers
 
-## Key engineering decision: recommended altitude ≠ average
+## Altitude scope
 
-The recommended altitude is deliberately **not** `(min + max) / 2`. It is selected by
-scoring every feasible altitude on a weighted combination of aerodynamic efficiency,
-climb-rate safety margin, power margin, and an endurance proxy — see
-`backend/app/physics.py::_select_recommended_altitude` and `docs/FORMULA_SHEET.md` for
-the full reasoning. The simple midpoint is still computed and shown separately, labelled
-"mean altitude", purely for reference.
+Aircraft-performance altitude predictions remain internal to legacy physics/model
+structures for compatibility, but are intentionally not presented as application
+outputs. Terrain elevation and safe route height in Mission Planner are retained because
+they come from route terrain plus the operator-selected clearance buffer, not from an
+aircraft recommended-altitude formula.

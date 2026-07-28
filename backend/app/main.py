@@ -1047,7 +1047,7 @@ def report_pdf(req: ReportRequest):
     score = None
 
     try:
-        exp = explain(LocalExplanationRequest(input=inp, target="recommended_altitude_m"))
+        exp = explain(LocalExplanationRequest(input=inp, target="endurance_hr"))
         local_explanation = exp.dict()
     except Exception:
         pass
@@ -1229,8 +1229,10 @@ def mission_compute(req: MissionComputeRequest):
     physics_result, _, uav = _run_physics(req.input)
     min_safe_alts = [e + req.altitude_buffer_m for e in elevations]
     mission_floor = max(min_safe_alts)
-    cruise_altitude = min(max(physics_result["recommended_altitude_m"], mission_floor),
-                           physics_result["service_ceiling_m"])
+    # Route height is terrain-derived, not an aircraft-performance altitude
+    # recommendation. Fly at the requested clearance above the highest sampled
+    # terrain point while retaining the service ceiling as a feasibility check.
+    cruise_altitude = min(mission_floor, physics_result["service_ceiling_m"])
     terrain_conflict = mission_floor > physics_result["service_ceiling_m"]
 
     perf = physics.evaluate_altitude(uav, cruise_altitude)

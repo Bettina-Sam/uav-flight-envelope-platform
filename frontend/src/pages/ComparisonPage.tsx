@@ -9,11 +9,16 @@ import { getChartColors } from '../lib/chartTheme';
 import { formatDurationHHMM } from '../lib/duration';
 
 const METRIC_META: Record<string, { label: string; unit: string }> = {
+  rate_of_climb_ms: { label: 'Rate of Climb', unit: 'm/s' },
   range_km: { label: 'Range', unit: '' },
   endurance_hr: { label: 'Endurance', unit: 'HH:MM' },
+  power_required_w: { label: 'Power Required', unit: 'W' },
+  lift_n: { label: 'Lift', unit: 'N' },
+  drag_n: { label: 'Drag', unit: 'N' },
+  l_over_d: { label: 'Lift-to-Drag Ratio', unit: '' },
 };
 
-const ORDER = ['endurance_hr', 'range_km'];
+const ORDER = ['endurance_hr', 'range_km', 'rate_of_climb_ms', 'power_required_w', 'lift_n', 'drag_n', 'l_over_d'];
 
 function tier(absDiff: number, normalizedError: number | null): 'green' | 'yellow' | 'red' {
   if (normalizedError !== null) {
@@ -94,8 +99,8 @@ export default function ComparisonPage() {
         </div>
       </div>
       <p className="text-muted text-sm mb-8 max-w-2xl">
-        A focused visual comparison of the two mission outputs. Physics is the auditable reference;
-        ML is the fast surrogate. Large gaps flag configurations the model has not seen much of.
+        Full comparison of every shared non-altitude performance output. Physics is the auditable
+        reference; ML is the fast surrogate. Aircraft-altitude predictions are intentionally excluded.
       </p>
 
       {/* Difference chart — always visible, single view of disagreement across all metrics */}
