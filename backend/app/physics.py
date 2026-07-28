@@ -528,15 +528,13 @@ def endurance_hours(
 
 def range_km(perf: AltitudePerformance, endurance_h: float) -> float:
     """
-    Theoretical straight-line, still-air range.
+    Project-specified direct range convention:
+        range_value = cruise_speed_m_per_s * endurance_hours
 
-    Cruise speed remains in m/s throughout the calculation:
-        range_m  = velocity_m_per_s * endurance_seconds
-        range_km = range_m / 1000
+    Note: because the input remains m/s and endurance remains hours, this
+    direct product is a project convention rather than an SI distance in km.
     """
-    endurance_seconds = endurance_h * 3600.0
-    range_m = perf.velocity_ms * endurance_seconds
-    return range_m / 1000.0
+    return perf.velocity_ms * endurance_h
 
 
 # ---------------------------------------------------------------------------
