@@ -52,8 +52,9 @@ function saveSession(data: PersistedSession) {
 function migrateSession(session: PersistedSession): PersistedSession {
   const i = session.input;
   const hasOldModelResult = !!session.result && session.result.ml.model_used !== CURRENT_MODEL_NAME;
+  const hasLegacyReferenceName = i.aircraft_name === 'TAPAS BH-201';
   const isLegacyReferenceIdentity =
-    i.aircraft_name === 'TAPAS BH-201' &&
+    hasLegacyReferenceName &&
     i.mass_kg === 2850 &&
     i.payload_kg === 350 &&
     i.wing_area_m2 === 21.2;
@@ -65,13 +66,13 @@ function migrateSession(session: PersistedSession): PersistedSession {
     i.cruise_speed_ms === 38;
   const migratedInput: UAVInput = {
     ...session.input,
-    ...(isLegacyReferenceIdentity ? { aircraft_name: 'IUAS-MALE' } : {}),
+    ...(hasLegacyReferenceName ? { aircraft_name: 'IUAS-MALE' } : {}),
     ...(hasLegacyTapasSfc ? { sfc_kg_per_n_s: DEFAULT_UAV_INPUT.sfc_kg_per_n_s } : {}),
   };
 
   // Rename saved instances of the old reference aircraft and correct only its
   // exact legacy SFC. Other user-entered aircraft names and SFCs stay untouched.
-  if (isLegacyReferenceIdentity) {
+  if (hasLegacyReferenceName) {
     return {
       input: isOldTapasDefault ? DEFAULT_UAV_INPUT : migratedInput,
       result: null,
