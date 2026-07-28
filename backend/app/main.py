@@ -332,7 +332,9 @@ def _run_ml(uav: physics.UAVConfig) -> dict:
         if ct > 0 and takeoff_mass_kg > landing_mass_kg > 0:
             ml_endurance_hr = (1.0 / ct) * ml_l_over_d * math.log(takeoff_mass_kg / landing_mass_kg) / 3600.0
             reg_vals["endurance_hr"] = max(0.0, ml_endurance_hr)
-            reg_vals["range_km"] = max(0.0, uav.cruise_speed_ms * 3.6 * ml_endurance_hr)
+            ml_endurance_seconds = ml_endurance_hr * 3600.0
+            ml_range_m = uav.cruise_speed_ms * ml_endurance_seconds
+            reg_vals["range_km"] = max(0.0, ml_range_m / 1000.0)
 
     # keep min <= recommended <= max <= absolute_ceiling ordering sane for display
     if reg_vals["max_altitude_m"] < reg_vals["min_altitude_m"]:

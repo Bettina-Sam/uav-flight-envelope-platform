@@ -527,8 +527,16 @@ def endurance_hours(
 
 
 def range_km(perf: AltitudePerformance, endurance_h: float) -> float:
-    """Range = V * E  (straight-line, still-air range)"""
-    return perf.velocity_ms * 3.6 * endurance_h  # km
+    """
+    Theoretical straight-line, still-air range.
+
+    Cruise speed remains in m/s throughout the calculation:
+        range_m  = velocity_m_per_s * endurance_seconds
+        range_km = range_m / 1000
+    """
+    endurance_seconds = endurance_h * 3600.0
+    range_m = perf.velocity_ms * endurance_seconds
+    return range_m / 1000.0
 
 
 # ---------------------------------------------------------------------------
