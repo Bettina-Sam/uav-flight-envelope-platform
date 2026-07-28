@@ -251,6 +251,7 @@ export default function UAVInputPage() {
                         max={f.max}
                         value={local[f.key]}
                         onChange={(e) => handleChange(f.key, parseFloat(e.target.value))}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="w-full bg-bg border border-border rounded-md px-3 py-2 font-mono text-sm text-text focus:border-cyan outline-none"
                         required
                       />

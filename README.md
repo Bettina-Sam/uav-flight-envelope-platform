@@ -11,6 +11,18 @@ UAV** — built for a DRDO internship prototype.
 
 ## What's new in this revision
 
+- **Corrected fuel endurance and duration display.** The TAPAS reference SFC is
+  calibrated to `4.0 × 10⁻⁶ kg/(N·s)`. With the reference aircraft, 30 L of fuel,
+  and the modeled 20% reserve, the physics engine predicts approximately one hour
+  of endurance (`01:01` in the current calculation). Endurance is displayed as
+  `HH:MM` throughout the main results screens instead of ambiguous decimal hours;
+  for example, the former `0.57 hr` display represented only about `00:34`, not
+  57 minutes.
+- **Stable numeric UAV inputs.** Scrolling while a numeric input is focused no
+  longer increments or decrements it through the browser's native mouse-wheel
+  behavior. A fuel entry such as `35 L` therefore remains `35 L` when the
+  prediction is run and the user returns to the input page.
+
 - **Twin-engine airframe.** The baseline aircraft now has 2 engines (configurable 1–4).
   A dedicated **Engine-Out Safety Analysis** evaluates whether the aircraft can still
   hold its minimum altitude with one engine inoperative — the standard multi-engine
@@ -73,14 +85,35 @@ uav-platform/
 
 See `docs/INSTALLATION.md` for full step-by-step setup. Short version:
 
-```bash
-# Backend
+### Backend — Windows PowerShell
+
+```powershell
 cd backend
-python3 -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-python -m app.dataset_generator      # generates data/uav_synthetic_dataset.csv
-python -m app.train_model            # trains models, saves to models/
 uvicorn app.main:app --reload --port 8000
+```
+
+### Backend — macOS/Linux
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+The repository already includes the generated dataset and trained model. Retraining
+is optional; when required, run `python -m app.dataset_generator` followed by
+`python -m app.train_model`.
+
+### Frontend
+
+```bash
 
 # Frontend (new terminal)
 cd frontend
@@ -129,4 +162,3 @@ climb-rate safety margin, power margin, and an endurance proxy — see
 `backend/app/physics.py::_select_recommended_altitude` and `docs/FORMULA_SHEET.md` for
 the full reasoning. The simple midpoint is still computed and shown separately, labelled
 "mean altitude", purely for reference.
-
