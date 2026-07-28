@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import html2canvas from 'html2canvas';
 import { Activity, Fuel, Gauge, Plane, Sliders, GitCompare, Download, Loader2, RotateCcw, Timer } from 'lucide-react';
 import { useUAV } from '../context/UAVContext';
 import { predict, getDesignScore } from '../api/client';
@@ -70,6 +71,8 @@ export default function CommandCenterPage() {
   const [liveResult, setLiveResult] = useState<PredictResponse | null>(baseResult);
   const [tuning, setTuning] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dashboardExportRef = useRef<HTMLDivElement>(null);
+  const [exportingPng, setExportingPng] = useState(false);
 
   const [score, setScore] = useState<DesignScoreResponse | null>(null);
 
@@ -120,6 +123,25 @@ export default function CommandCenterPage() {
     drawFlightCard(liveInput, liveResult, score);
   };
 
+  const handleExportDashboard = async () => {
+    if (!dashboardExportRef.current) return;
+    setExportingPng(true);
+    try {
+      const canvas = await html2canvas(dashboardExportRef.current, {
+        backgroundColor: '#07111f',
+        useCORS: true,
+        scale: Math.min(2, window.devicePixelRatio || 1),
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png', 1);
+      link.download = `mission-control-${liveInput.aircraft_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+      link.click();
+    } finally {
+      setExportingPng(false);
+    }
+  };
+
   const narration = useMemo(() => (liveResult ? narrateDashboard(liveResult, score) : ''), [liveResult, score]);
 
   if (!liveResult) {
@@ -145,8 +167,11 @@ export default function CommandCenterPage() {
         </div>
         <div className="flex items-center gap-2">
           <NarrateButton text={narration} label="Narrate" />
+          <button disabled={exportingPng} onClick={handleExportDashboard} className="inline-flex items-center gap-1.5 border border-cyan/50 text-cyan font-mono text-[11px] uppercase tracking-wider px-3 py-2 rounded-md font-semibold hover:bg-cyan/10 transition disabled:opacity-50">
+            {exportingPng ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Mission Control PNG
+          </button>
           <button onClick={handleExportCard} className="inline-flex items-center gap-1.5 bg-cyan text-bg font-mono text-[11px] uppercase tracking-wider px-3 py-2 rounded-md font-semibold hover:opacity-90 transition">
-            <Download className="w-3.5 h-3.5" /> Flight Card
+            <Download className="w-3.5 h-3.5" /> Compact Card
           </button>
         </div>
       </div>
@@ -155,6 +180,14 @@ export default function CommandCenterPage() {
         — with live tuning sliders and an optional side-by-side ghost comparison.
       </p>
 
+      <div ref={dashboardExportRef} className="p-3 -mx-3 bg-bg rounded-lg">
+      <div className="flex items-end justify-between gap-3 mb-3 px-1">
+        <div>
+          <div className="eyebrow">Mission Control Snapshot</div>
+          <div className="font-display text-xl font-semibold mt-1">{liveInput.aircraft_name}</div>
+        </div>
+        <div className="text-[10px] font-mono text-muted">{new Date().toLocaleString()}</div>
+      </div>
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <div className="lg:col-span-2 panel p-5">
           <div className="flex items-center justify-between mb-4">
@@ -221,6 +254,7 @@ export default function CommandCenterPage() {
           </div>
         </div>
       )}
+      </div>
 
       {/* Live tuning */}
       <div className="panel p-5 mb-6">

@@ -1,108 +1,98 @@
 const EQUATIONS = [
-  { name: 'ISA Temperature', eq: 'T(h) = T0 - L·h' },
-  { name: 'ISA Pressure', eq: 'P(h) = P0 · (T(h)/T0)^(g0/(R·L))' },
-  { name: 'ISA Density', eq: 'ρ(h) = P(h) / (R·T(h))' },
-  { name: 'Dynamic Pressure', eq: 'q = ½·ρ·V²' },
-  { name: 'Lift', eq: 'L = Cl·q·S' },
-  { name: 'Induced Drag Coeff.', eq: 'Cdi = Cl² / (π·e·AR)' },
-  { name: 'Drag Coefficient', eq: 'Cd = Cd0 + Cdi' },
-  { name: 'Drag', eq: 'D = Cd·q·S' },
-  { name: 'Stall Speed', eq: 'Vstall = √(2W / (ρ·S·Clmax))' },
-  { name: 'Power Required', eq: 'Preq = D·V' },
-  { name: 'Power Available', eq: 'Pavail = Pmotor · ηprop(ρ)' },
-  { name: 'Rate of Climb', eq: 'ROC = (Pavail − Preq) / W' },
-  { name: 'Wing Loading', eq: 'W/S' },
-  { name: 'Power Loading', eq: 'Pmotor / m' },
-  { name: 'Lift-to-Drag Ratio', eq: 'L/D = Cl / Cd' },
-  { name: 'Endurance (electric)', eq: 'E = Ebatt·(1−reserve) / (Preq/ηprop)' },
-  { name: 'Range', eq: 'R = V · E' },
+  { group: 'Atmosphere', name: 'ISA temperature', eq: 'T(h) = T₀ − Lh' },
+  { group: 'Atmosphere', name: 'ISA pressure', eq: 'p(h) = p₀ [T(h)/T₀]^(g₀/RL)' },
+  { group: 'Atmosphere', name: 'ISA density', eq: 'ρ(h) = p(h) / [R T(h)]' },
+  { group: 'Aerodynamics', name: 'Dynamic pressure', eq: 'q = ½ρV²' },
+  { group: 'Aerodynamics', name: 'Required lift coefficient', eq: 'Cᴸ = W / (qS)' },
+  { group: 'Aerodynamics', name: 'Aspect ratio (inferred)', eq: 'AR = clamp(0.8 × input L/D, 4, 30)' },
+  { group: 'Aerodynamics', name: 'Drag polar', eq: 'Cᴰ = Cᴰ₀ + Cᴸ² / (πeAR),  e = 0.85' },
+  { group: 'Aerodynamics', name: 'Lift and drag', eq: 'L = CᴸqS,   D = CᴰqS' },
+  { group: 'Aerodynamics', name: 'Stall speed', eq: 'Vstall = √[2W / (ρSCᴸmax)]' },
+  { group: 'Propulsion', name: 'Input thrust', eq: 'Tinput = (T/W)mg' },
+  { group: 'Propulsion', name: 'Inferred motor power', eq: 'Pmotor = Tinput V / ηprop' },
+  { group: 'Propulsion', name: 'Altitude efficiency', eq: 'ηprop(h) = ηstatic(0.4 + 0.6ρ/ρ₀)' },
+  { group: 'Performance', name: 'Power required / available', eq: 'Preq = DV,   Pavail = Pmotor ηprop(h)' },
+  { group: 'Performance', name: 'Rate of climb', eq: 'ROC = (Pavail − Preq) / W' },
+  { group: 'Electric', name: 'Usable battery energy', eq: 'Eb,use = Ebattery × SOC × (1 − 0.20)' },
+  { group: 'Electric', name: 'Electric endurance', eq: 'E = Eb,use / [Preq / ηprop(h)]' },
+  { group: 'Fuel', name: 'Fuel mass', eq: 'mfuel = Vfuel × 0.8 kg/L' },
+  { group: 'Fuel', name: 'Breguet endurance', eq: 'E = [1/(SFC·g₀)] (L/D) ln(mi/mf)' },
+  { group: 'Range', name: 'Still-air range', eq: 'R = Vcruise × E' },
 ];
 
 const PARAMS = [
-  { name: 'Mass / Payload', influence: 'Direct, ↑ mass → ↑ required lift → ↑ induced drag & power required', type: 'Input' },
-  { name: 'Wing Area', influence: 'Direct, ↑ S → ↓ wing loading → ↓ stall speed, ↑ structure/drag area', type: 'Input' },
-  { name: 'Wingspan / Aspect Ratio', influence: 'Indirect via AR, ↑ AR → ↓ induced drag → ↑ L/D', type: 'Input / Derived' },
-  { name: 'Air Density', influence: 'Direct, ↓ ρ with altitude → ↑ required Cl at fixed speed → ↑ induced drag', type: 'Derived (from altitude)' },
-  { name: 'Cl_max / Cd0 / Oswald e', influence: 'Direct, define the drag polar and stall boundary', type: 'Input' },
-  { name: 'Battery Energy', influence: 'Direct, ↑ energy → ↑ endurance, no effect on lift/drag', type: 'Input' },
-  { name: 'Motor Power / Prop Efficiency', influence: 'Direct, sets power available; degrades with altitude via ρ', type: 'Input' },
-  { name: 'Cruise Speed', influence: 'Direct, sets the operating point on the drag polar at every altitude', type: 'Input' },
-  { name: 'Wing / Power Loading', influence: 'Derived summary indicators of climb & stall margin', type: 'Derived, used as ML feature' },
+  { name: 'Mass / payload', influence: 'Mass sets weight, required lift, induced drag, stall speed, and climb demand. Payload is reported separately but must already be included in total mass.' },
+  { name: 'Wing area', influence: 'Controls wing loading and the lift coefficient required at the selected speed.' },
+  { name: 'Input L/D', influence: 'Used to infer aspect ratio and Cᴸmax; the displayed operating L/D is recalculated from the drag polar.' },
+  { name: 'Cᴰ₀ / cruise speed', influence: 'Set parasite drag and the operating point. True airspeed is held constant through the altitude sweep.' },
+  { name: 'T/W / propulsive efficiency', influence: 'Used to infer installed power and its conversion into thrust power at altitude.' },
+  { name: 'Fuel capacity / SFC', influence: 'When both are above zero, the Breguet fuel model is active. Fuel density is assumed to be 0.8 kg/L.' },
+  { name: 'Battery / SOC', influence: 'When fuel mode is inactive, battery energy × SOC supplies the electric endurance calculation.' },
+  { name: 'Air density input', influence: 'Retained as an input/ML feature; the physics altitude sweep itself uses ISA density at each altitude.' },
+  { name: 'Propeller diameter / auxiliary power', influence: 'Stored and exposed for design/reporting, but they do not currently alter the core endurance result.' },
 ];
 
 export default function AboutPage() {
   return (
-    <div className="max-w-3xl">
-      <div className="eyebrow mb-2">Page 10</div>
-      <h1 className="font-display text-3xl font-semibold mb-6">About &amp; Methodology</h1>
+    <div className="max-w-4xl">
+      <div className="eyebrow mb-2">Methodology</div>
+      <h1 className="font-display text-3xl font-semibold mb-3">About &amp; Formula Reference</h1>
+      <p className="text-sm text-muted leading-relaxed mb-10 max-w-3xl">
+        This page documents the equations used by the current backend—not the legacy mini-UAV
+        dataset schema. The platform calculates a physics flight envelope and compares it with an
+        ML surrogate. Results are preliminary engineering estimates, not certified flight limits.
+      </p>
 
       <section className="mb-10">
-        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">What this platform does</h2>
-        <p className="text-sm text-muted leading-relaxed">
-          This is a physics-informed machine learning platform for predicting the flight envelope
-          of a fixed-wing electric mini-UAV: minimum/maximum/recommended operating altitude, service
-          and absolute ceiling, rate of climb, range, endurance, power required, lift, drag, and a
-          rule-based safety classification. It runs two parallel prediction paths — a transparent
-          physics engine (ISA atmosphere + classical aircraft-performance equations) and an ML
-          surrogate model trained on data generated by that same physics engine — and shows both,
-          side by side, so the ML output can be audited against ground truth.
-        </p>
+        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">How the current model works</h2>
+        <div className="grid md:grid-cols-3 gap-3 text-xs">
+          {[
+            ['1 · Translate inputs', 'L/D is used to estimate aspect ratio and Cᴸmax. T/W, mass, speed, and efficiency estimate installed motor power.'],
+            ['2 · Sweep altitude', 'ISA density is evaluated from 0–11 km. Lift, drag, stall margin, power margin, and climb rate are recomputed at every point.'],
+            ['3 · Select and report', 'Feasible points below service ceiling are scored. Endurance and range are then evaluated at the recommended altitude.'],
+          ].map(([title, text]) => (
+            <div key={title} className="panel p-4">
+              <div className="font-mono text-cyan mb-2">{title}</div>
+              <p className="text-muted leading-relaxed">{text}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mb-10">
-        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Why synthetic data</h2>
-        <p className="text-sm text-muted leading-relaxed mb-3">
-          No real UAV flight-test dataset was used. Real telemetry at this granularity — systematic
-          sweeps of altitude, power, and lift across many configurations — is operationally
-          restricted and not available for a research prototype. Instead, the dataset was generated
-          by sampling 6,000 UAV design configurations within realistic bounds for a 7–25&nbsp;kg
-          electric fixed-wing UAV class, and computing their ground-truth flight envelope with the
-          physics engine. This is standard practice for early-stage physics-informed surrogate
-          modeling in aerospace research.
-        </p>
-        <p className="text-sm text-muted leading-relaxed">
-          <span className="text-amber">Limitation:</span> the ML model can only be as good as the
-          physics equations that generated its training data. It does not capture turbulence, gust
-          response, manufacturing tolerances, sensor noise, or off-nominal propeller behaviour —
-          effects that real flight-test data would reveal. Treat all outputs as engineering-estimate
-          guidance for early design exploration, not as certified airworthiness data.
-        </p>
+        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Endurance model switch</h2>
+        <div className="panel p-5 grid md:grid-cols-2 gap-5 text-sm">
+          <div>
+            <div className="eyebrow text-amber mb-2">Fuel mode</div>
+            <p className="text-muted leading-relaxed">
+              Activated only when both fuel capacity and SFC are greater than zero. It uses
+              Breguet endurance, 0.8 kg/L fuel density, and a 20% fuel reserve.
+            </p>
+          </div>
+          <div>
+            <div className="eyebrow text-cyan mb-2">Electric mode</div>
+            <p className="text-muted leading-relaxed">
+              Used otherwise. Available energy is battery Wh × state of charge, followed by a
+              further 20% reserve. Aerodynamic power is divided by propulsive efficiency.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="mb-10">
-        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Why "recommended altitude" isn't the average</h2>
-        <p className="text-sm text-muted leading-relaxed">
-          The recommended altitude is <em>not</em> (min + max) / 2. It's selected by scoring every
-          feasible altitude below the service ceiling on a weighted combination of aerodynamic
-          efficiency (L/D), climb-rate safety margin, power margin, and an endurance proxy — then
-          picking the highest-scoring altitude. Because the design holds cruise airspeed fixed
-          across the sweep, required Cl rises with altitude (thinner air), so parasite drag falls
-          while induced drag rises — producing a genuine minimum-power altitude that shifts with
-          the aircraft's actual configuration. The simple midpoint is still shown separately, labelled
-          "mean altitude", for reference only.
-        </p>
-      </section>
-
-      <section className="mb-10">
-        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Parameters &amp; their influence on altitude</h2>
+        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Inputs and actual influence</h2>
         <div className="panel overflow-x-auto">
-          <table className="w-full text-xs font-mono min-w-[600px]">
-            <thead>
-              <tr className="text-muted uppercase border-b border-border">
-                <th className="text-left py-2.5 px-3">Parameter</th>
-                <th className="text-left py-2.5 px-3">Influence on altitude / envelope</th>
-                <th className="text-left py-2.5 px-3">ML role</th>
+          <table className="w-full text-xs min-w-[620px]">
+            <thead><tr className="text-muted uppercase border-b border-border">
+              <th className="text-left py-2.5 px-3">Input</th>
+              <th className="text-left py-2.5 px-3">How it affects the current calculation</th>
+            </tr></thead>
+            <tbody>{PARAMS.map((p) => (
+              <tr key={p.name} className="border-b border-border/50">
+                <td className="py-2.5 px-3 font-mono text-text whitespace-nowrap">{p.name}</td>
+                <td className="py-2.5 px-3 text-muted">{p.influence}</td>
               </tr>
-            </thead>
-            <tbody>
-              {PARAMS.map((p, i) => (
-                <tr key={i} className="border-b border-border/50">
-                  <td className="py-2 px-3 text-text">{p.name}</td>
-                  <td className="py-2 px-3 text-muted">{p.influence}</td>
-                  <td className="py-2 px-3 text-cyan">{p.type}</td>
-                </tr>
-              ))}
-            </tbody>
+            ))}</tbody>
           </table>
         </div>
       </section>
@@ -110,53 +100,43 @@ export default function AboutPage() {
       <section className="mb-10">
         <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Formula sheet</h2>
         <div className="panel overflow-x-auto">
-          <table className="w-full text-xs font-mono min-w-[500px]">
-            <tbody>
-              {EQUATIONS.map((e, i) => (
-                <tr key={i} className="border-b border-border/50">
-                  <td className="py-2 px-3 text-text w-1/3">{e.name}</td>
-                  <td className="py-2 px-3 text-cyan">{e.eq}</td>
-                </tr>
-              ))}
-            </tbody>
+          <table className="w-full text-xs font-mono min-w-[620px]">
+            <thead><tr className="text-muted uppercase border-b border-border">
+              <th className="text-left py-2.5 px-3">Group</th><th className="text-left py-2.5 px-3">Quantity</th><th className="text-left py-2.5 px-3">Implemented equation</th>
+            </tr></thead>
+            <tbody>{EQUATIONS.map((e) => (
+              <tr key={`${e.group}-${e.name}`} className="border-b border-border/50">
+                <td className="py-2 px-3 text-muted">{e.group}</td>
+                <td className="py-2 px-3 text-text">{e.name}</td>
+                <td className="py-2 px-3 text-cyan whitespace-nowrap">{e.eq}</td>
+              </tr>
+            ))}</tbody>
           </table>
         </div>
       </section>
 
       <section className="mb-10">
-        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Implemented vs. assumed vs. future work</h2>
-        <div className="grid sm:grid-cols-3 gap-4 text-sm">
-          <div className="panel p-4">
-            <div className="eyebrow text-green mb-2">Implemented</div>
-            <ul className="text-muted text-xs space-y-1.5 list-disc list-inside">
-              <li>Full ISA troposphere atmosphere model</li>
-              <li>Steady-level-flight lift/drag/power equations</li>
-              <li>Excess-power climb &amp; ceiling theory</li>
-              <li>Multi-output ML surrogate, 7 models compared</li>
-              <li>Permutation + native feature importance</li>
-              <li>PDF/CSV export, batch CSV prediction, PWA</li>
-            </ul>
-          </div>
-          <div className="panel p-4">
-            <div className="eyebrow text-amber mb-2">Synthetic Assumptions</div>
-            <ul className="text-muted text-xs space-y-1.5 list-disc list-inside">
-              <li>Design parameter sampling bounds (7–25 kg class)</li>
-              <li>Empirical propeller-efficiency-vs-altitude curve</li>
-              <li>Fixed 20% battery reserve for endurance</li>
-              <li>No wind, gust, or turbulence modeling</li>
-              <li>Single fixed cruise Cl-max airfoil family</li>
-            </ul>
-          </div>
-          <div className="panel p-4">
-            <div className="eyebrow text-cyan mb-2">Future Enhancements</div>
-            <ul className="text-muted text-xs space-y-1.5 list-disc list-inside">
-              <li>SHAP values for per-prediction explanations</li>
-              <li>Partial dependence plots per feature</li>
-              <li>CatBoost in the model comparison</li>
-              <li>Wind/gust-perturbed envelope</li>
-              <li>Validation against real flight-test logs</li>
-            </ul>
-          </div>
+        <h2 className="font-display text-lg font-semibold mb-3 text-cyan">Recommended altitude and ceilings</h2>
+        <div className="panel p-5 text-sm text-muted leading-relaxed space-y-3">
+          <p>Service ceiling is interpolated where ROC reaches 0.508 m/s (100 ft/min); absolute ceiling is where ROC reaches zero.</p>
+          <p>
+            Recommended altitude is not the midpoint. Feasible candidates at or below the service
+            ceiling are scored as 35% L/D, 30% ROC, 20% power margin, and 15% inverse drag in fuel
+            mode or inverse power required in electric mode.
+          </p>
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="font-display text-lg font-semibold mb-3 text-amber">Important limitations</h2>
+        <div className="panel p-5 text-xs text-muted leading-relaxed">
+          <ul className="list-disc list-inside space-y-2">
+            <li>No calibration against the guide’s flight-test log has been performed yet.</li>
+            <li>Wind and live mission weather are informational and are not fed into endurance.</li>
+            <li>Climb, loiter, descent, taxi, reserve policy variations, battery voltage sag, and engine-specific fuel maps are not modeled.</li>
+            <li>Propeller efficiency uses a synthetic altitude correction rather than a measured propeller map.</li>
+            <li>Auxiliary power and propeller diameter currently do not change the core endurance result.</li>
+          </ul>
         </div>
       </section>
     </div>

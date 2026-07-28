@@ -7,11 +7,9 @@ import { listSavedConfigs, saveConfig, deleteConfig, SavedConfig } from '../lib/
 import { buildShareableUrl } from '../lib/shareLink';
 import { predict } from '../api/client';
 import { PredictResponse } from '../types';
-import { computeAchievements } from '../lib/achievements';
-import AchievementBadges from '../components/AchievementBadges';
 
 export default function SavedConfigsPanel() {
-  const { input, setInput, runPrediction, result } = useUAV();
+  const { input, setInput, runPrediction } = useUAV();
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<SavedConfig[]>([]);
   const [name, setName] = useState('');
@@ -76,11 +74,6 @@ export default function SavedConfigsPanel() {
         machine). Shareable links encode the full configuration in the URL itself — anyone who opens
         the link sees exactly this setup, no server-side storage required.
       </p>
-
-      {/* Milestones */}
-      <div className="panel p-5 mb-6">
-        <AchievementBadges achievements={computeAchievements(configs, result)} />
-      </div>
 
       {/* Save current */}
       <div className="panel p-5 mb-6">
