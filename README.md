@@ -11,7 +11,7 @@ UAV** — built for a DRDO internship prototype.
 
 ## What's new in this revision
 
-- **Corrected fuel endurance and duration display.** The TAPAS reference SFC is
+- **Corrected fuel endurance and duration display.** The IUAS-MALE reference SFC is
   calibrated to `4.0 × 10⁻⁶ kg/(N·s)`. With the reference aircraft, 30 L of fuel,
   and the modeled 20% reserve, the physics engine predicts approximately one hour
   of endurance (`01:01` in the current calculation). Endurance is displayed as

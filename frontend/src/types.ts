@@ -327,7 +327,7 @@ export interface LocalExplanationResponse {
 }
 
 export const DEFAULT_UAV_INPUT: UAVInput = {
-  aircraft_name: 'TAPAS BH-201',
+  aircraft_name: 'IUAS-MALE',
   mass_kg: 2850,
   payload_kg: 350,
   wing_area_m2: 21.2,

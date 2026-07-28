@@ -3,7 +3,7 @@ from typing import List, Optional
 
 
 class UAVInput(BaseModel):
-    aircraft_name: str = Field('TAPAS BH-201', description='Aircraft name')
+    aircraft_name: str = Field('IUAS-MALE', description='Aircraft name')
     mass_kg: float = Field(..., gt=0, le=30000, description='Total mass (empty + payload), kg')
     payload_kg: float = Field(..., ge=0, le=5000, description='Payload mass, kg')
     wing_area_m2: float = Field(..., gt=0.05, le=500.0, description='Wing planform area, m^2')
@@ -23,7 +23,7 @@ class UAVInput(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "aircraft_name": "TAPAS BH-201",
+                "aircraft_name": "IUAS-MALE",
                 "mass_kg": 2850, "payload_kg": 350, "wing_area_m2": 21.2,
                 "l_over_d": 26.0, "cd0": 0.03, "cruise_speed_ms": 45,
                 "air_density_kg_m3": 1.225, "sfc_kg_per_n_s": 0.000004, "thrust_to_weight": 0.32,

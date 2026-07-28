@@ -23,7 +23,7 @@ REG_TARGETS = [t for t in TARGET_COLUMNS if t != "safety_status"]
 CLS_TARGET = "safety_status"
 
 TAPAS_BASE = {
-    "aircraft_name": "TAPAS BH-201",
+    "aircraft_name": "IUAS-MALE",
     "mass_kg": 2850,
     "payload_kg": 350,
     "wing_area_m2": 21.2,

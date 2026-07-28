@@ -3,7 +3,7 @@
 ## Reference aircraft data → GUI
 
 Added a **Reference Configurations** selector at the top of the UAV Input
-page: "Default — Mini Surveillance UAV" and **"TAPAS BH-201"**.
+page: "Default — Mini Surveillance UAV" and **"IUAS-MALE"**.
 
 **Important honesty note, read before using this in your defense:** the
 reference table is for a **fuel/turboprop** aircraft (SFC in kg/N·s, 500 L

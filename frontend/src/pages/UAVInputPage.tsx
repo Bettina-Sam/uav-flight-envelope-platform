@@ -50,7 +50,7 @@ const SECTIONS: Section[] = [
     title: 'Propulsion',
     icon: Zap,
     fields: [
-      { key: 'sfc_kg_per_n_s', label: 'Specific Fuel Consumption', unit: 'kg/(N·s)', step: 0.000001, min: 0.0, max: 0.00002, help: 'Fuel TSFC; TAPAS reference is calibrated at 4×10⁻⁶ kg/(N·s)' } as any,
+      { key: 'sfc_kg_per_n_s', label: 'Specific Fuel Consumption', unit: 'kg/(N·s)', step: 0.000001, min: 0.0, max: 0.00002, help: 'Fuel TSFC; IUAS-MALE reference is calibrated at 4×10⁻⁶ kg/(N·s)' } as any,
       { key: 'thrust_to_weight', label: 'Thrust-to-Weight Ratio', unit: '-', step: 0.01, min: 0.01, max: 0.5, help: 'Design thrust-to-weight ratio' },
       { key: 'propulsion_efficiency', label: 'Propulsion Efficiency', unit: 'η', step: 0.01, min: 0.3, max: 0.95, help: 'Propulsive efficiency' },
       { key: 'fuel_capacity_l', label: 'Fuel Capacity', unit: 'L', step: 1, min: 0, max: 5000, help: 'Fuel tank volume (liters)' },

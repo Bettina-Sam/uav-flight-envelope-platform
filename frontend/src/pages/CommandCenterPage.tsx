@@ -228,7 +228,7 @@ export default function CommandCenterPage() {
               <div className="font-mono text-sm text-text mt-1">{liveInput.thrust_to_weight.toFixed(2)}</div>
             </div>
             <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Activity className="w-3 h-3" /> TAPAS Scale</div>
+              <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Activity className="w-3 h-3" /> IUAS-MALE Scale</div>
               <div className="font-mono text-sm text-amber mt-1">{tapasRangePct.toFixed(0)}% range</div>
             </div>
           </div>

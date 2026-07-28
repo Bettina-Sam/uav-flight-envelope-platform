@@ -52,34 +52,36 @@ function saveSession(data: PersistedSession) {
 function migrateSession(session: PersistedSession): PersistedSession {
   const i = session.input;
   const hasOldModelResult = !!session.result && session.result.ml.model_used !== CURRENT_MODEL_NAME;
-  const hasLegacyTapasSfc =
+  const isLegacyReferenceIdentity =
     i.aircraft_name === 'TAPAS BH-201' &&
     i.mass_kg === 2850 &&
     i.payload_kg === 350 &&
-    i.wing_area_m2 === 21.2 &&
+    i.wing_area_m2 === 21.2;
+  const hasLegacyTapasSfc =
+    isLegacyReferenceIdentity &&
     i.sfc_kg_per_n_s === 0.000007;
   const isOldTapasDefault =
-    i.aircraft_name === 'TAPAS BH-201' &&
-    i.mass_kg === 2850 &&
-    i.payload_kg === 350 &&
-    i.wing_area_m2 === 21.2 &&
+    isLegacyReferenceIdentity &&
     i.cruise_speed_ms === 38;
+  const migratedInput: UAVInput = {
+    ...session.input,
+    ...(isLegacyReferenceIdentity ? { aircraft_name: 'IUAS-MALE' } : {}),
+    ...(hasLegacyTapasSfc ? { sfc_kg_per_n_s: DEFAULT_UAV_INPUT.sfc_kg_per_n_s } : {}),
+  };
 
-  // Earlier releases shipped the TAPAS preset with SFC=7e-6 kg/(N*s),
-  // which produced about 00:35 from 30 L. Migrate only that exact legacy
-  // preset value; user-entered engine SFC values remain untouched.
-  if (hasLegacyTapasSfc) {
+  // Rename saved instances of the old reference aircraft and correct only its
+  // exact legacy SFC. Other user-entered aircraft names and SFCs stay untouched.
+  if (isLegacyReferenceIdentity) {
     return {
-      input: { ...session.input, sfc_kg_per_n_s: DEFAULT_UAV_INPUT.sfc_kg_per_n_s },
+      input: isOldTapasDefault ? DEFAULT_UAV_INPUT : migratedInput,
       result: null,
       lastMission: session.lastMission,
     };
   }
   if (hasOldModelResult) {
-    return { input: isOldTapasDefault ? DEFAULT_UAV_INPUT : session.input, result: null, lastMission: session.lastMission };
+    return { input: session.input, result: null, lastMission: session.lastMission };
   }
-  if (!isOldTapasDefault) return session;
-  return { input: DEFAULT_UAV_INPUT, result: null, lastMission: null };
+  return session;
 }
 
 export function UAVProvider({ children }: { children: ReactNode }) {

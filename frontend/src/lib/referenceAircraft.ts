@@ -35,7 +35,7 @@ export const DEFAULT_PRESET_INPUT: UAVInput = {
 };
 
 /**
- * "TAPAS BH-201-inspired" preset, built from a reference parameter table
+ * "IUAS-MALE-inspired" preset, built from a reference parameter table
  * (fuel/turboprop HALE-class UAS, L/D=26, calibrated SFC=0.000004 kg/N·s, 2850 kg,
  * 110 Ah battery for avionics, 500 L fuel, T/W=0.32, cruise 38 m/s, wing
  * 21.2 m², 350 kg payload, 80% propulsive efficiency).
@@ -56,12 +56,12 @@ export const DEFAULT_PRESET_INPUT: UAVInput = {
  * See docs/UNCERTAINTY_METHODOLOGY_AND_MODEL_CHOICE.md for the full
  * derivation and the reasoning behind each assumed value.
  */
-export const TAPAS_PRESET: ReferencePreset = {
-  key: 'tapas',
-  label: 'TAPAS BH-201',
-  shortDesc: 'Large reference aircraft values mapped to this platform\u2019s input schema (TAPAS BH-201).',
+export const IUAS_MALE_PRESET: ReferencePreset = {
+  key: 'iuas-male',
+  label: 'IUAS-MALE',
+  shortDesc: 'Large IUAS-MALE reference aircraft values mapped to this platform\u2019s input schema.',
   input: {
-    aircraft_name: 'TAPAS BH-201',
+    aircraft_name: 'IUAS-MALE',
     mass_kg: 2850,
     payload_kg: 350,
     wing_area_m2: 21.2,
@@ -92,10 +92,10 @@ export const TAPAS_PRESET: ReferencePreset = {
     { field: 'cd0', source: 'assumed', note: 'Representative zero-lift drag chosen instead of using the guide\u2019s total cruise CD directly.' },
   ],
   caveat:
-    'This platform\u2019s ML surrogate was trained on smaller electric UAVs. ML predictions for TAPAS BH-201 will be outside the training distribution; this is expected. The physics engine still computes values at this scale.'
+    'This platform\u2019s ML surrogate was trained on smaller electric UAVs. ML predictions for IUAS-MALE will be outside the training distribution; this is expected. The physics engine still computes values at this scale.'
 };
 
 export const REFERENCE_PRESETS: ReferencePreset[] = [
   { key: 'default', label: 'Default \u2014 Mini Surveillance UAV', shortDesc: 'This platform\u2019s baseline small electric UAV, within the ML model\u2019s training range.', input: DEFAULT_PRESET_INPUT },
-  TAPAS_PRESET,
+  IUAS_MALE_PRESET,
 ];
