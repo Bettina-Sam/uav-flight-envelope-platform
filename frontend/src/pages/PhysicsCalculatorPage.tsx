@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUAV } from '../context/UAVContext';
 import StatCard from '../components/StatCard';
+import { formatDurationHHMM } from '../lib/duration';
 import SafetyBadge from '../components/SafetyBadge';
 import NarrateButton from '../components/NarrateButton';
 import { narratePhysics } from '../lib/narrationText';
@@ -16,7 +17,7 @@ function interpret(p: PhysicsResult) {
   if (p.wing_loading_kg_m2 > 25) notes.push(`Wing loading (${p.wing_loading_kg_m2.toFixed(1)} kg/m²) is relatively high, which raises stall speed and reduces low-speed maneuverability.`);
   else notes.push(`Wing loading (${p.wing_loading_kg_m2.toFixed(1)} kg/m²) is moderate-to-low, favoring a lower stall speed and gentler handling.`);
 
-  if (p.l_over_d > 15) notes.push(`L/D of ${p.l_over_d.toFixed(1)} at the recommended altitude is efficient — this is the main driver of the ${p.endurance_hr.toFixed(1)} hr endurance and ${p.range_km.toFixed(0)} km range estimate.`);
+  if (p.l_over_d > 15) notes.push(`L/D of ${p.l_over_d.toFixed(1)} at the recommended altitude is efficient — this is the main driver of the ${formatDurationHHMM(p.endurance_hr)} HH:MM endurance and ${p.range_km.toFixed(0)} km range estimate.`);
   else notes.push(`L/D of ${p.l_over_d.toFixed(1)} is modest; endurance and range are being constrained more by aerodynamic efficiency than by battery capacity alone.`);
 
   const marginPct = p.power_available_w > 0 ? ((p.power_available_w - p.power_required_w) / p.power_available_w) * 100 : 0;
@@ -84,7 +85,7 @@ export default function PhysicsCalculatorPage() {
           ['Drag', p.drag_n.toFixed(2), 'N'],
           ['L/D Ratio', p.l_over_d.toFixed(2), ''],
           ['Range', p.range_km.toFixed(1), 'km'],
-          ['Endurance', p.endurance_hr.toFixed(2), 'hr'],
+          ['Endurance', formatDurationHHMM(p.endurance_hr), 'HH:MM'],
           ['Wing Loading', p.wing_loading_kg_m2.toFixed(1), 'kg/m²'],
         ].map(([label, value, unit], i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.015 }}>

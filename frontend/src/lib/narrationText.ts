@@ -1,9 +1,10 @@
 import type { PredictResponse, DesignScoreResponse } from '../types';
+import { formatDurationLong } from './duration';
 
 export function narratePhysics(r: PredictResponse): string {
   const p = r.physics;
   return `Physics results. This aircraft has a recommended cruise altitude of ${Math.round(p.recommended_altitude_m)} meters, `
-    + `with a service ceiling of ${Math.round(p.service_ceiling_m)} meters. Estimated endurance is ${p.endurance_hr.toFixed(1)} hours, `
+    + `with a service ceiling of ${Math.round(p.service_ceiling_m)} meters. Estimated endurance is ${formatDurationLong(p.endurance_hr)}, `
     + `with a range of ${Math.round(p.range_km)} kilometers. The lift to drag ratio is ${p.l_over_d.toFixed(1)}. `
     + `Overall safety status is ${p.safety_status}. ${p.warnings.length ? 'Warnings: ' + p.warnings.join('. ') : 'No warnings were raised for this configuration.'}`;
 }

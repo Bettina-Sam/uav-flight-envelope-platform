@@ -1,4 +1,5 @@
 import type { UAVInput, PredictResponse, DesignScoreResponse } from '../types';
+import { formatDurationHHMM } from './duration';
 
 const W = 900, H = 1200;
 const GRADE_COLOR: Record<string, string> = { A: '#22C55E', B: '#4FD1C5', C: '#F5A623', D: '#F5A623', F: '#EF4444' };
@@ -92,7 +93,7 @@ export function drawFlightCard(input: UAVInput, result: PredictResponse, score: 
   // stat grid
   const stats: [string, string, string][] = [
     ['RECOMMENDED ALTITUDE', `${Math.round(result.physics.recommended_altitude_m)}`, 'm'],
-    ['ENDURANCE', result.physics.endurance_hr.toFixed(2), 'hr'],
+    ['ENDURANCE', formatDurationHHMM(result.physics.endurance_hr), 'HH:MM'],
     ['RANGE', `${Math.round(result.physics.range_km)}`, 'km'],
     ['L / D RATIO', result.physics.l_over_d.toFixed(2), ''],
     ['MASS', `${input.mass_kg}`, 'kg'],

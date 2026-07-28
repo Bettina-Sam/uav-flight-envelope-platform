@@ -7,6 +7,7 @@ import { listSavedConfigs, saveConfig, deleteConfig, SavedConfig } from '../lib/
 import { buildShareableUrl } from '../lib/shareLink';
 import { predict } from '../api/client';
 import { PredictResponse } from '../types';
+import { formatDurationHHMM } from '../lib/duration';
 
 export default function SavedConfigsPanel() {
   const { input, setInput, runPrediction } = useUAV();
@@ -162,7 +163,9 @@ export default function SavedConfigsPanel() {
                       {selected.map((id) => (
                         <td key={id} className="text-right px-3 text-cyan">
                           {typeof compareResults[id]?.physics[k] === 'number'
-                            ? (compareResults[id].physics[k] as number).toFixed(2)
+                            ? k === 'endurance_hr'
+                              ? formatDurationHHMM(compareResults[id].physics[k] as number)
+                              : (compareResults[id].physics[k] as number).toFixed(2)
                             : compareResults[id]?.physics[k]}
                         </td>
                       ))}

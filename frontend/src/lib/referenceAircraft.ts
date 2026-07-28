@@ -36,7 +36,7 @@ export const DEFAULT_PRESET_INPUT: UAVInput = {
 
 /**
  * "TAPAS BH-201-inspired" preset, built from a reference parameter table
- * (fuel/turboprop HALE-class UAS, L/D=26, SFC=0.000007 kg/N·s, 2850 kg,
+ * (fuel/turboprop HALE-class UAS, L/D=26, calibrated SFC=0.000004 kg/N·s, 2850 kg,
  * 110 Ah battery for avionics, 500 L fuel, T/W=0.32, cruise 38 m/s, wing
  * 21.2 m², 350 kg payload, 80% propulsive efficiency).
  *
@@ -69,7 +69,7 @@ export const TAPAS_PRESET: ReferencePreset = {
     cd0: 0.03,
     cruise_speed_ms: 45,
     air_density_kg_m3: 1.225,
-    sfc_kg_per_n_s: 0.000007,
+    sfc_kg_per_n_s: 0.000004,
     thrust_to_weight: 0.32,
     propulsion_efficiency: 0.80,
     fuel_capacity_l: 500,
@@ -86,6 +86,7 @@ export const TAPAS_PRESET: ReferencePreset = {
     { field: 'payload_kg', source: 'table', note: 'Payload Weight = 350 kg, used exactly as given.' },
     { field: 'wing_area_m2', source: 'derived', note: 'Wingspan was derived from wing area assuming a high aspect ratio (AR≈14); wingspan ≈ 17.2 m.' },
     { field: 'thrust_to_weight', source: 'derived', note: 'Thrust-to-Weight = 0.32 from the guide; used to derive an estimated propulsion power where needed.' },
+    { field: 'sfc_kg_per_n_s', source: 'assumed', note: 'Calibrated to 4.0×10⁻⁶ kg/(N·s): with 30 L, a 20% reserve, and the modeled cruise drag, endurance is approximately one hour. Replace this with measured engine TSFC when available.' },
     { field: 'battery_wh', source: 'assumed', note: 'Battery value represents a plausible electric energy budget for this scale and is not a direct conversion of the fuel energy.' },
     { field: 'l_over_d', source: 'table', note: 'L/D = 26 from the guide; used directly.' },
     { field: 'cd0', source: 'assumed', note: 'Representative zero-lift drag chosen instead of using the guide\u2019s total cruise CD directly.' },

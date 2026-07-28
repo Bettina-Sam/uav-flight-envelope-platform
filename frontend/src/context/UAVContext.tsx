@@ -52,6 +52,12 @@ function saveSession(data: PersistedSession) {
 function migrateSession(session: PersistedSession): PersistedSession {
   const i = session.input;
   const hasOldModelResult = !!session.result && session.result.ml.model_used !== CURRENT_MODEL_NAME;
+  const hasLegacyTapasSfc =
+    i.aircraft_name === 'TAPAS BH-201' &&
+    i.mass_kg === 2850 &&
+    i.payload_kg === 350 &&
+    i.wing_area_m2 === 21.2 &&
+    i.sfc_kg_per_n_s === 0.000007;
   const isOldTapasDefault =
     i.aircraft_name === 'TAPAS BH-201' &&
     i.mass_kg === 2850 &&
@@ -59,6 +65,16 @@ function migrateSession(session: PersistedSession): PersistedSession {
     i.wing_area_m2 === 21.2 &&
     i.cruise_speed_ms === 38;
 
+  // Earlier releases shipped the TAPAS preset with SFC=7e-6 kg/(N*s),
+  // which produced about 00:35 from 30 L. Migrate only that exact legacy
+  // preset value; user-entered engine SFC values remain untouched.
+  if (hasLegacyTapasSfc) {
+    return {
+      input: { ...session.input, sfc_kg_per_n_s: DEFAULT_UAV_INPUT.sfc_kg_per_n_s },
+      result: null,
+      lastMission: session.lastMission,
+    };
+  }
   if (hasOldModelResult) {
     return { input: isOldTapasDefault ? DEFAULT_UAV_INPUT : session.input, result: null, lastMission: session.lastMission };
   }

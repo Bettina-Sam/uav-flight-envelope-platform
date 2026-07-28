@@ -4,7 +4,7 @@ import { batchPredict } from '../api/client';
 import SafetyBadge from '../components/SafetyBadge';
 
 const TEMPLATE_HEADER = "aircraft_name,mass_kg,payload_kg,wing_area_m2,l_over_d,cd0,cruise_speed_ms,air_density_kg_m3,sfc_kg_per_n_s,thrust_to_weight,propulsion_efficiency,fuel_capacity_l,propeller_diameter_m,battery_wh,battery_soc,aux_power_w";
-const TEMPLATE_ROW = "MyUAV,14,3,0.6,12,0.028,20,1.225,0.000007,0.25,0.8,10,0.3,1200,0.9,480";
+const TEMPLATE_ROW = "MyUAV,14,3,0.6,12,0.028,20,1.225,0.000004,0.25,0.8,10,0.3,1200,0.9,480";
 
 export default function BatchPredictionPage() {
   const [rows, setRows] = useState<any[] | null>(null);

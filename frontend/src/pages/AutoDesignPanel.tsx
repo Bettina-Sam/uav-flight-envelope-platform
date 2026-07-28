@@ -6,6 +6,7 @@ import { useUAV } from '../context/UAVContext';
 import { autoDesign } from '../api/client';
 import { AutoDesignResponse, AutoDesignCandidate } from '../types';
 import SafetyBadge from '../components/SafetyBadge';
+import { formatDurationHHMM } from '../lib/duration';
 
 export default function AutoDesignPanel() {
   const { setInput, runPrediction } = useUAV();
@@ -112,7 +113,7 @@ export default function AutoDesignPanel() {
               <SafetyBadge status={result.best.safety_status as any} />
             </div>
             <div className="grid sm:grid-cols-3 gap-4 font-mono text-sm mb-4">
-              <div><div className="text-[10px] text-muted">Achieved Endurance</div><div className="text-text">{result.best.achieved_endurance_hr.toFixed(2)} hr {result.target_endurance_hr && <span className="text-[10px] text-muted">(target {result.target_endurance_hr})</span>}</div></div>
+              <div><div className="text-[10px] text-muted">Achieved Endurance</div><div className="text-text">{formatDurationHHMM(result.best.achieved_endurance_hr)} <span className="text-[10px] text-muted">HH:MM</span> {result.target_endurance_hr && <span className="text-[10px] text-muted">(target {formatDurationHHMM(result.target_endurance_hr)})</span>}</div></div>
               <div><div className="text-[10px] text-muted">Achieved Range</div><div className="text-text">{result.best.achieved_range_km.toFixed(1)} km {result.target_range_km && <span className="text-[10px] text-muted">(target {result.target_range_km})</span>}</div></div>
               <div><div className="text-[10px] text-muted">Recommended Altitude</div><div className="text-cyan">{result.best.achieved_recommended_altitude_m.toFixed(0)} m</div></div>
             </div>
@@ -143,7 +144,7 @@ export default function AutoDesignPanel() {
                     <SafetyBadge status={alt.safety_status as any} size="sm" />
                   </div>
                   <div className="font-mono text-xs space-y-1 mb-3">
-                    <div className="flex justify-between"><span className="text-muted">Endurance</span><span className="text-text">{alt.achieved_endurance_hr.toFixed(2)} hr</span></div>
+                    <div className="flex justify-between"><span className="text-muted">Endurance</span><span className="text-text">{formatDurationHHMM(alt.achieved_endurance_hr)}</span></div>
                     <div className="flex justify-between"><span className="text-muted">Range</span><span className="text-text">{alt.achieved_range_km.toFixed(1)} km</span></div>
                     <div className="flex justify-between"><span className="text-muted">Wing Area</span><span className="text-text">{alt.input.wing_area_m2.toFixed(2)} m²</span></div>
                     <div className="flex justify-between"><span className="text-muted">Battery</span><span className="text-text">{alt.input.battery_wh.toFixed(0)} Wh</span></div>

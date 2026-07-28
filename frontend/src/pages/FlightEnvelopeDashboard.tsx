@@ -15,6 +15,7 @@ import { DesignScoreResponse } from '../types';
 import AltitudeGauge from '../components/AltitudeGauge';
 import SafetyBadge from '../components/SafetyBadge';
 import StatCard from '../components/StatCard';
+import { formatDurationHHMM } from '../lib/duration';
 import EngineOutPanel from '../components/EngineOutPanel';
 import ErrorBoundary from '../components/ErrorBoundary';
 import FlightProfileVisualizer from '../components/FlightProfileVisualizer';
@@ -108,7 +109,7 @@ export default function FlightEnvelopeDashboard() {
           <StatCard label="Service Ceiling" value={physics.service_ceiling_m.toFixed(0)} unit="m" />
           <StatCard label="Absolute Ceiling" value={physics.absolute_ceiling_m.toFixed(0)} unit="m" />
           <StatCard label="Mean Altitude" value={physics.mean_altitude_m.toFixed(0)} unit="m" sub="midpoint, informational" />
-          <StatCard label="Endurance" value={physics.endurance_hr.toFixed(2)} unit="hr" />
+          <StatCard label="Endurance" value={formatDurationHHMM(physics.endurance_hr)} unit="HH:MM" />
           <StatCard label="Range" value={physics.range_km.toFixed(1)} unit="km" />
           <StatCard label="L/D @ Recommended" value={physics.l_over_d.toFixed(2)} accent="green" />
         </div>

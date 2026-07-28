@@ -14,6 +14,7 @@ import SafetyBadge from '../components/SafetyBadge';
 import StatCard from '../components/StatCard';
 import NarrateButton from '../components/NarrateButton';
 import { drawFlightCard } from '../lib/flightCard';
+import { formatDurationHHMM } from '../lib/duration';
 
 const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; step: number; unit: string }[] = [
   { key: 'mass_kg', label: 'Mass', min: 7, max: 3000, step: 1, unit: 'kg' },
@@ -48,7 +49,7 @@ function FuelGauge({ capacityL, estimatedBurnKgHr }: { capacityL: number; estima
         <text x="134" y="108" fontSize="10" fontFamily="monospace" fill="#8A9BB5">500L+</text>
       </svg>
       <div className="text-center text-[11px] text-muted">
-        Breguet fuel endurance: <span className="font-mono text-text">{reserveHours.toFixed(1)} hr</span>
+        Breguet fuel endurance: <span className="font-mono text-text">{formatDurationHHMM(reserveHours)} HH:MM</span>
       </div>
     </div>
   );
@@ -220,7 +221,7 @@ export default function CommandCenterPage() {
             </div>
             <div className="rounded-md border border-border p-3">
               <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Timer className="w-3 h-3" /> Endurance</div>
-              <div className="font-mono text-sm text-text mt-1">{p.endurance_hr.toFixed(2)} hr</div>
+              <div className="font-mono text-sm text-text mt-1">{formatDurationHHMM(p.endurance_hr)} <span className="text-[9px] text-muted">HH:MM</span></div>
             </div>
             <div className="rounded-md border border-border p-3">
               <div className="text-[10px] text-muted uppercase font-mono flex items-center gap-1"><Gauge className="w-3 h-3" /> T/W</div>
@@ -247,7 +248,7 @@ export default function CommandCenterPage() {
             </div>
           </div>
           <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-[280px]">
-            <StatCard label="Endurance" value={p.endurance_hr.toFixed(2)} unit="hr" />
+            <StatCard label="Endurance" value={formatDurationHHMM(p.endurance_hr)} unit="HH:MM" />
             <StatCard label="Range" value={p.range_km.toFixed(0)} unit="km" />
             <StatCard label="L/D" value={p.l_over_d.toFixed(2)} accent="green" />
             <StatCard label="Rate of Climb" value={p.rate_of_climb_ms.toFixed(1)} unit="m/s" />
@@ -313,8 +314,8 @@ export default function CommandCenterPage() {
                 {(['recommended_altitude_m', 'endurance_hr', 'range_km', 'l_over_d', 'rate_of_climb_ms'] as const).map((k) => (
                   <tr key={k} className="border-b border-border/50">
                     <td className="py-2 pr-4 text-text">{k.replace(/_/g, ' ')}</td>
-                    <td className="text-right px-3 text-cyan">{(liveResult.physics[k] as number).toFixed(2)}</td>
-                    <td className="text-right pl-3 text-amber">{(ghostResult.physics[k] as number).toFixed(2)}</td>
+                    <td className="text-right px-3 text-cyan">{k === 'endurance_hr' ? formatDurationHHMM(liveResult.physics[k]) : (liveResult.physics[k] as number).toFixed(2)}</td>
+                    <td className="text-right pl-3 text-amber">{k === 'endurance_hr' ? formatDurationHHMM(ghostResult.physics[k]) : (ghostResult.physics[k] as number).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

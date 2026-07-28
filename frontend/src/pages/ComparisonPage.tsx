@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useUAV } from '../context/UAVContext';
 import { useTheme } from '../context/ThemeContext';
 import { getChartColors } from '../lib/chartTheme';
+import { formatDurationHHMM } from '../lib/duration';
 
 const METRIC_META: Record<string, { label: string; unit: string }> = {
   recommended_altitude_m: { label: 'Recommended Altitude', unit: 'm' },
@@ -13,7 +14,7 @@ const METRIC_META: Record<string, { label: string; unit: string }> = {
   absolute_ceiling_m: { label: 'Absolute Ceiling', unit: 'm' },
   rate_of_climb_ms: { label: 'Rate of Climb', unit: 'm/s' },
   range_km: { label: 'Range', unit: 'km' },
-  endurance_hr: { label: 'Endurance', unit: 'hr' },
+  endurance_hr: { label: 'Endurance', unit: 'HH:MM' },
   lift_n: { label: 'Lift', unit: 'N' },
   drag_n: { label: 'Drag', unit: 'N' },
   l_over_d: { label: 'Lift-to-Drag Ratio', unit: '' },
@@ -163,8 +164,8 @@ export default function ComparisonPage() {
                     <td className="py-2.5 pr-4 text-text flex items-center gap-1.5">
                       <style.Icon className={`w-3.5 h-3.5 ${style.text}`} /> {meta.label}
                     </td>
-                    <td className="text-right px-3 text-text">{entry.physics_value.toFixed(2)} {meta.unit}</td>
-                    <td className="text-right px-3 text-cyan">{entry.ml_value.toFixed(2)} {meta.unit}</td>
+                    <td className="text-right px-3 text-text">{entry.target === 'endurance_hr' ? formatDurationHHMM(entry.physics_value) : entry.physics_value.toFixed(2)} {meta.unit}</td>
+                    <td className="text-right px-3 text-cyan">{entry.target === 'endurance_hr' ? formatDurationHHMM(entry.ml_value) : entry.ml_value.toFixed(2)} {meta.unit}</td>
                     <td className={`text-right px-3 ${style.text}`}>{entry.difference_pct >= 0 ? '+' : ''}{entry.difference_pct.toFixed(1)}%</td>
                     <td className="text-right px-3 text-muted">{confidencePct !== null ? `${confidencePct.toFixed(0)}%` : '—'}</td>
                     <td className="text-left pl-3 text-muted">{recommendation(t)}</td>
@@ -206,12 +207,12 @@ export default function ComparisonPage() {
                 <div className="flex items-center gap-2 font-mono text-sm mb-3 flex-wrap">
                   <div className="px-3 py-1.5 rounded-md border border-border">
                     <div className="text-[10px] text-muted">Physics</div>
-                    <div className="text-text">{entry.physics_value.toFixed(2)} {meta.unit}</div>
+                    <div className="text-text">{entry.target === 'endurance_hr' ? formatDurationHHMM(entry.physics_value) : entry.physics_value.toFixed(2)} {meta.unit}</div>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-muted shrink-0" />
                   <div className="px-3 py-1.5 rounded-md border border-border">
                     <div className="text-[10px] text-muted">ML</div>
-                    <div className="text-cyan">{entry.ml_value.toFixed(2)} {meta.unit}</div>
+                    <div className="text-cyan">{entry.target === 'endurance_hr' ? formatDurationHHMM(entry.ml_value) : entry.ml_value.toFixed(2)} {meta.unit}</div>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-muted shrink-0" />
                   <div className={`px-3 py-1.5 rounded-md border ${style.bg}`}>

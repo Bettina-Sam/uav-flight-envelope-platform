@@ -11,7 +11,7 @@ class UAVInput(BaseModel):
     cd0: float = Field(..., gt=0.0001, le=0.2, description='Drag coefficient (parasite Cd0)')
     cruise_speed_ms: float = Field(..., gt=1.0, le=200.0, description='Design cruise true airspeed, m/s')
     air_density_kg_m3: float = Field(1.225, gt=0.05, le=1.5, description='Ambient / reference air density, kg/m^3')
-    sfc_kg_per_n_s: float = Field(0.000007, ge=0.0, le=0.00005, description='Specific fuel consumption, kg/(N·s)')
+    sfc_kg_per_n_s: float = Field(0.000004, ge=0.0, le=0.00005, description='Specific fuel consumption, kg/(N·s)')
     thrust_to_weight: float = Field(0.32, gt=0.0, le=5.0, description='Thrust-to-weight ratio (T/W)')
     propulsion_efficiency: float = Field(0.8, gt=0.1, le=0.99, description='Propulsive efficiency (η)')
     fuel_capacity_l: float = Field(500.0, ge=0.0, le=10000.0, description='Fuel capacity, liters')
@@ -26,7 +26,7 @@ class UAVInput(BaseModel):
                 "aircraft_name": "TAPAS BH-201",
                 "mass_kg": 2850, "payload_kg": 350, "wing_area_m2": 21.2,
                 "l_over_d": 26.0, "cd0": 0.03, "cruise_speed_ms": 45,
-                "air_density_kg_m3": 1.225, "sfc_kg_per_n_s": 0.000007, "thrust_to_weight": 0.32,
+                "air_density_kg_m3": 1.225, "sfc_kg_per_n_s": 0.000004, "thrust_to_weight": 0.32,
                 "propulsion_efficiency": 0.8, "fuel_capacity_l": 500, "propeller_diameter_m": 3.0,
                 "battery_wh": 106875, "battery_soc": 0.9, "aux_power_w": 480
             }

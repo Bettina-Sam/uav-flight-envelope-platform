@@ -335,7 +335,7 @@ export const DEFAULT_UAV_INPUT: UAVInput = {
   cd0: 0.03,
   cruise_speed_ms: 45,
   air_density_kg_m3: 1.225,
-  sfc_kg_per_n_s: 0.000007,
+  sfc_kg_per_n_s: 0.000004,
   thrust_to_weight: 0.32,
   propulsion_efficiency: 0.80,
   fuel_capacity_l: 500,

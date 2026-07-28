@@ -11,6 +11,7 @@ import { LocalExplanationResponse } from '../types';
 import NarrateButton from '../components/NarrateButton';
 import { narrateML } from '../lib/narrationText';
 import StatCard from '../components/StatCard';
+import { formatDurationHHMM } from '../lib/duration';
 import SafetyBadge from '../components/SafetyBadge';
 
 const TARGET_OPTIONS = [
@@ -118,7 +119,7 @@ export default function MLPredictionPage() {
         <StatCard label="Drag" value={ml.drag_n.toFixed(2)} unit="N" />
         <StatCard label="L/D Ratio" value={ml.l_over_d.toFixed(2)} accent="green" />
         <StatCard label="Range" value={ml.range_km.toFixed(1)} unit="km" />
-        <StatCard label="Endurance" value={ml.endurance_hr.toFixed(2)} unit="hr" />
+        <StatCard label="Endurance" value={formatDurationHHMM(ml.endurance_hr)} unit="HH:MM" />
       </div>
 
       {/* Confidence intervals */}
