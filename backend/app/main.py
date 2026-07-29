@@ -29,15 +29,20 @@ import pandas as pd
 import joblib
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 
 import random
 import math
+import threading
+import httpx
+import ssl
+import truststore
 from app import physics, mission
 from app.schemas import (
     UAVInput, PredictResponse, PhysicsResult, MLResult, ComparisonEntry,
     EnvelopePoint, FeatureImportanceResponse, SensitivityRequest, SensitivityPoint,
     Sensitivity2DRequest, Sensitivity2DPoint, TrainingBoundsResponse,
+    UITranslationRequest, UITranslationResponse, UITextToSpeechRequest,
     LocalExplanationRequest, LocalExplanationResponse, FeatureContribution,
     OptimizeSuggestionRequest, OptimizeSuggestionResponse, OptimizeSuggestion,
     MissionElevationRequest, MissionElevationResponse, MissionWeatherRequest,
@@ -151,6 +156,68 @@ def startup_event():
 def health():
     return {"status": "ok", "service": "uav-flight-envelope-api",
             "model_loaded": _model is not None, "best_model": _manifest["best_model_name"] if _manifest else None}
+
+
+_ui_translation_cache: dict[tuple[str, str], str] = {}
+_ui_translation_lock = threading.Lock()
+
+
+@app.post("/translate/ui", response_model=UITranslationResponse)
+def translate_ui(req: UITranslationRequest):
+    """Translate application-owned UI copy and cache it in memory.
+
+    The frontend sends rendered labels and explanatory copy. Form controls are
+    not translated. The local Hindi/Tamil glossary remains the offline fallback.
+    """
+    target = req.target_language
+    translations: list[str] = []
+    source = "cache"
+    system_ssl = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    with httpx.Client(timeout=8.0, follow_redirects=True, verify=system_ssl) as client:
+        for raw in req.texts:
+            text = raw[:1500]
+            key = (target, text)
+            with _ui_translation_lock:
+                cached = _ui_translation_cache.get(key)
+            if cached is not None:
+                translations.append(cached)
+                continue
+            try:
+                response = client.get(
+                    "https://translate.googleapis.com/translate_a/single",
+                    params={"client": "gtx", "sl": "en", "tl": target, "dt": "t", "q": text},
+                )
+                response.raise_for_status()
+                payload = response.json()
+                translated = "".join(segment[0] for segment in payload[0] if segment and segment[0])
+                if not translated:
+                    raise ValueError("empty translation")
+                source = "google-translate"
+            except Exception:
+                translated = text
+                source = "fallback"
+            with _ui_translation_lock:
+                _ui_translation_cache[key] = translated
+            translations.append(translated)
+    return UITranslationResponse(translations=translations, source=source)
+
+
+@app.post("/translate/tts")
+def translated_text_to_speech(req: UITextToSpeechRequest):
+    """Return Hindi/Tamil speech audio when the device has no native voice."""
+    language = "ta" if req.language == "ta-IN" else "hi"
+    system_ssl = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    try:
+        with httpx.Client(timeout=12.0, follow_redirects=True, verify=system_ssl) as client:
+            response = client.get(
+                "https://translate.google.com/translate_tts",
+                params={"ie": "UTF-8", "client": "tw-ob", "tl": language, "q": req.text},
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+            response.raise_for_status()
+        return Response(content=response.content, media_type="audio/mpeg")
+    except Exception as exc:
+        raise HTTPException(503, f"Localized speech service unavailable: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------

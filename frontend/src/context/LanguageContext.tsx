@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { translateUIStrings } from '../api/client';
 
 export type AppLanguage = 'en' | 'hi' | 'ta';
 
@@ -121,7 +122,48 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const originals = new WeakMap<Text, string>();
     const lastRendered = new WeakMap<Text, string>();
     const translatedNodes = new Set<Text>();
+    const pending = new Set<string>();
+    const cacheKey = `uav-ui-translations-${language}-v1`;
+    let fullTranslations: Record<string, string> = {};
+    try { fullTranslations = JSON.parse(localStorage.getItem(cacheKey) || '{}'); } catch { fullTranslations = {}; }
     let applying = false;
+    let disposed = false;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const eligible = (text: string) =>
+      language !== 'en' &&
+      /[A-Za-z]{2}/.test(text) &&
+      text.trim().length > 1 &&
+      text.trim().length <= 1500 &&
+      !Object.keys(GLOBAL_TERMS[language]).some((term) => term.toLowerCase() === text.trim().toLowerCase());
+    const flush = async () => {
+      flushTimer = null;
+      const texts = Array.from(pending).slice(0, 30);
+      texts.forEach((text) => pending.delete(text));
+      if (!texts.length || language === 'en') return;
+      try {
+        const results = await translateUIStrings(texts, language);
+        if (disposed) return;
+        texts.forEach((text, index) => { fullTranslations[text] = results[index] || translateVisibleText(text, language); });
+        localStorage.setItem(cacheKey, JSON.stringify(fullTranslations));
+        applying = true;
+        translatedNodes.forEach((node) => {
+          const original = originals.get(node);
+          if (!original || !node.isConnected || !fullTranslations[original]) return;
+          node.nodeValue = fullTranslations[original];
+          lastRendered.set(node, fullTranslations[original]);
+        });
+        applying = false;
+      } catch {
+        // The immediate built-in glossary stays visible when translation
+        // service/network access is unavailable.
+      }
+      if (pending.size && !disposed) flushTimer = setTimeout(flush, 120);
+    };
+    const queue = (text: string) => {
+      if (!eligible(text) || fullTranslations[text] || pending.has(text)) return;
+      pending.add(text);
+      if (!flushTimer) flushTimer = setTimeout(flush, 80);
+    };
     const apply = (root: Node) => {
       const nodes: Text[] = [];
       if (root.nodeType === Node.TEXT_NODE) nodes.push(root as Text);
@@ -135,10 +177,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         if (!parent || ['SCRIPT', 'STYLE', 'TEXTAREA', 'OPTION'].includes(parent.tagName) || parent.closest('svg')) continue;
         if (!originals.has(node)) originals.set(node, node.nodeValue || '');
         const original = originals.get(node) || '';
-        const next = translateVisibleText(original, language);
+        const next = fullTranslations[original] || translateVisibleText(original, language);
         if (node.nodeValue !== next) node.nodeValue = next;
         lastRendered.set(node, next);
         translatedNodes.add(node);
+        queue(original);
       }
       applying = false;
     };
@@ -156,6 +199,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => {
+      disposed = true;
+      if (flushTimer) clearTimeout(flushTimer);
       observer.disconnect();
       applying = true;
       translatedNodes.forEach((node) => {
