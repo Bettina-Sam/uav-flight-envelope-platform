@@ -14,9 +14,12 @@ import { drawFlightCard } from '../lib/flightCard';
 import { formatDurationHHMM } from '../lib/duration';
 import RangeEndurance3D from '../components/RangeEndurance3D';
 import { useLanguage } from '../context/LanguageContext';
+import FlightProfileVisualizer from '../components/FlightProfileVisualizer';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const SLIDERS: { key: keyof UAVInput; label: string; min: number; max: number; step: number; unit: string }[] = [
   { key: 'mass_kg', label: 'Mass', min: 7, max: 3000, step: 1, unit: 'kg' },
+  { key: 'cruise_speed_ms', label: 'Cruise Speed', min: 5, max: 120, step: 1, unit: 'm/s' },
   { key: 'fuel_capacity_l', label: 'Fuel Capacity', min: 0, max: 5000, step: 5, unit: 'L' },
   { key: 'sfc_kg_per_n_s', label: 'SFC', min: 0.000003, max: 0.00002, step: 0.0000005, unit: 'kg/N*s' },
   { key: 'thrust_to_weight', label: 'Thrust-to-Weight', min: 0.05, max: 1.2, step: 0.01, unit: '' },
@@ -243,7 +246,7 @@ export default function CommandCenterPage() {
           icon={BatteryCharging}
         />
         <PerformanceVisual
-          label="Range"
+          label="Direct Range Value"
           value={p.range_km.toFixed(2)}
           numericValue={p.range_km}
           ghostValue={ghostResult?.physics.range_km}
@@ -259,6 +262,35 @@ export default function CommandCenterPage() {
         {fuelConfig && <div className="panel p-5 lg:col-span-2"><FuelGauge capacityL={liveInput.fuel_capacity_l} estimatedBurnKgHr={fuelBurnKgHr} /></div>}
       </div>
 
+      <div className="panel p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <div>
+            <div className="eyebrow">Interactive Flight Profile Visualizer</div>
+            <div className="text-[11px] text-muted mt-1">
+              Animated climb, cruise, and descent with phase status, vertical speed, pause, timeline scrubbing, and live-tuned cruise speed.
+            </div>
+          </div>
+          <div className="font-mono text-xs text-cyan">{liveInput.cruise_speed_ms.toFixed(1)} m/s</div>
+        </div>
+        <ErrorBoundary fallbackTitle="Flight profile visualization failed to load.">
+          <FlightProfileVisualizer
+            minAltitude={p.min_altitude_m}
+            maxAltitude={p.max_altitude_m}
+            recommendedAltitude={p.recommended_altitude_m}
+            serviceCeiling={p.service_ceiling_m}
+            cruiseSpeedMs={liveInput.cruise_speed_ms}
+            rateOfClimbMs={p.rate_of_climb_ms}
+            safetyStatus={p.safety_status as any}
+            numEngines={p.engine_out?.engines_operating ?? 1}
+          />
+        </ErrorBoundary>
+        <div className="grid sm:grid-cols-3 gap-2 mt-3 text-[10px] font-mono">
+          <div className="rounded-md border border-border p-2 text-muted">Speed <span className="float-right text-cyan">{liveInput.cruise_speed_ms.toFixed(1)} m/s</span></div>
+          <div className="rounded-md border border-border p-2 text-muted">Endurance <span className="float-right text-cyan">{formatDurationHHMM(p.endurance_hr)}</span></div>
+          <div className="rounded-md border border-border p-2 text-muted">Direct range value <span className="float-right text-cyan">{p.range_km.toFixed(2)}</span></div>
+        </div>
+      </div>
+
       {score && (
         <div className="panel p-5 mb-6 flex items-center gap-6 flex-wrap">
           <div className="flex items-center gap-3">
@@ -272,7 +304,7 @@ export default function CommandCenterPage() {
           </div>
           <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-[280px]">
             <StatCard label="Endurance" value={formatDurationHHMM(p.endurance_hr)} unit="HH:MM" />
-            <StatCard label="Range" value={p.range_km.toFixed(2)} />
+            <StatCard label="Direct Range Value" value={p.range_km.toFixed(2)} />
             <StatCard label="L/D" value={p.l_over_d.toFixed(2)} accent="green" />
             <StatCard label="Fuel Burn" value={fuelBurnKgHr.toFixed(1)} unit="kg/h" />
           </div>
