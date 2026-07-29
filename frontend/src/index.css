@@ -36,6 +36,7 @@ html.dark {
 
 html, body, #root {
   height: 100%;
+  max-width: 100%;
 }
 
 body {
@@ -47,6 +48,15 @@ body {
     radial-gradient(circle at 85% 20%, rgb(var(--color-amber) / 0.05), transparent 35%);
   background-attachment: fixed;
   transition: background-color 0.2s ease, color 0.2s ease;
+  overflow-x: hidden;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  max-width: 100%;
 }
 
 ::selection {
@@ -69,6 +79,7 @@ body {
   border: 1px solid rgb(var(--color-border));
   border-radius: 14px;
   transition: background-color 0.2s ease, border-color 0.2s ease;
+  min-width: 0;
 }
 
 .eyebrow {
@@ -165,4 +176,19 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+@media (max-width: 639px) {
+  h1 {
+    overflow-wrap: anywhere;
+  }
+
+  .panel {
+    border-radius: 10px;
+  }
+
+  .recharts-wrapper,
+  .recharts-responsive-container {
+    min-width: 0 !important;
+  }
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { FileText, FileSpreadsheet, Loader2, Route, BatteryCharging } from 'lucide-react';
 import { useUAV } from '../context/UAVContext';
 import { downloadReport } from '../api/client';
+import { formatDurationHHMM } from '../lib/duration';
 import SavedConfigsPanel from './SavedConfigsPanel';
 
 export default function ReportGenerationPage() {
@@ -53,6 +55,26 @@ export default function ReportGenerationPage() {
         </p>
       )}
 
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+        className="grid sm:grid-cols-2 gap-4 mb-6 max-w-2xl"
+      >
+        <div className="panel p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-md bg-cyan/10 flex items-center justify-center shrink-0"><Route className="w-5 h-5 text-cyan" /></div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Range Value (this report)</div>
+            <div className="font-display text-xl font-semibold">{result.physics.range_km.toFixed(2)}</div>
+          </div>
+        </div>
+        <div className="panel p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-md bg-amber/10 flex items-center justify-center shrink-0"><BatteryCharging className="w-5 h-5 text-amber" /></div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Endurance (this report)</div>
+            <div className="font-display text-xl font-semibold">{formatDurationHHMM(result.physics.endurance_hr)}</div>
+          </div>
+        </div>
+      </motion.div>
+
       <div className="grid sm:grid-cols-2 gap-4 mb-6 max-w-2xl">
         <button
           onClick={() => handleDownload('pdf')}
@@ -78,10 +100,10 @@ export default function ReportGenerationPage() {
 
       <div className="panel p-5 mt-6 max-w-2xl">
         <div className="eyebrow mb-2">Current Configuration Snapshot</div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-mono text-muted">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-mono text-muted">
           {Object.entries(input).map(([k, v]) => (
-            <div key={k} className="flex justify-between">
-              <span>{k}</span><span className="text-text">{v}</span>
+            <div key={k} className="flex justify-between gap-3 min-w-0">
+              <span className="break-all">{k}</span><span className="text-text shrink-0">{v}</span>
             </div>
           ))}
         </div>

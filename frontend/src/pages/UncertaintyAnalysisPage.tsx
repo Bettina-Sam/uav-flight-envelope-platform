@@ -237,7 +237,7 @@ export default function UncertaintyAnalysisPage() {
 
           {mcSummary && (
             <div className="panel p-4">
-              <div className="grid grid-cols-3 gap-2 font-mono text-xs mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs mb-3">
                 <div><div className="text-muted">Mean</div><div className="text-cyan">{mcSummary.mean.toFixed(2)} {mcUnit}</div></div>
                 <div><div className="text-muted">Std Dev</div><div className="text-text">{mcSummary.std.toFixed(2)}</div></div>
                 <div><div className="text-muted">95% CI</div><div className="text-text">[{mcSummary.ci_95_low.toFixed(1)}, {mcSummary.ci_95_high.toFixed(1)}]</div></div>

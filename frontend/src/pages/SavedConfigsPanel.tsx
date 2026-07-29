@@ -77,24 +77,24 @@ export default function SavedConfigsPanel() {
       </p>
 
       {/* Save current */}
-      <div className="panel p-5 mb-6">
+      <div className="panel p-3 sm:p-5 mb-6">
         <div className="eyebrow mb-3">Save Current Configuration</div>
         <div className="flex flex-wrap gap-2">
           <input
             value={name} onChange={(e) => setName(e.target.value)}
             placeholder={`e.g. "Long-endurance mapping variant"`}
-            className="flex-1 min-w-[220px] bg-bg border border-border rounded-md px-3 py-2 font-mono text-sm text-text"
+            className="w-full sm:flex-1 sm:min-w-[220px] bg-bg border border-border rounded-md px-3 py-2 font-mono text-sm text-text"
           />
           <motion.button
             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             onClick={handleSave}
-            className="inline-flex items-center gap-2 bg-cyan text-bg font-mono text-xs uppercase tracking-wider px-4 py-2 rounded-md font-semibold hover:opacity-90 transition"
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-2 bg-cyan text-bg font-mono text-xs uppercase tracking-wider px-4 py-2 rounded-md font-semibold hover:opacity-90 transition"
           >
             <Save className="w-4 h-4" /> Save
           </motion.button>
           <button
             onClick={() => handleCopyLink()}
-            className="inline-flex items-center gap-2 border border-border text-muted hover:text-cyan hover:border-cyan/50 font-mono text-xs uppercase tracking-wider px-4 py-2 rounded-md transition"
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-2 border border-border text-muted hover:text-cyan hover:border-cyan/50 font-mono text-xs uppercase tracking-wider px-4 py-2 rounded-md transition"
           >
             {copied ? <Check className="w-4 h-4 text-green" /> : <Share2 className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy Shareable Link'}

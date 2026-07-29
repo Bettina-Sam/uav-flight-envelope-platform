@@ -205,7 +205,7 @@ def translate_ui(req: UITranslationRequest):
 @app.post("/translate/tts")
 def translated_text_to_speech(req: UITextToSpeechRequest):
     """Return Hindi/Tamil speech audio when the device has no native voice."""
-    language = "ta" if req.language == "ta-IN" else "hi"
+    language = {"ta-IN": "ta", "kn-IN": "kn"}.get(req.language, "hi")
     system_ssl = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     try:
         with httpx.Client(timeout=12.0, follow_redirects=True, verify=system_ssl) as client:

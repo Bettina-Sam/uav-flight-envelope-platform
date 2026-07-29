@@ -45,17 +45,17 @@ export default function PerformanceAnalysisPage() {
   return (
     <div>
       <div className="eyebrow mb-2">Performance Analysis</div>
-      <h1 className="font-display text-3xl font-semibold mb-2">Range &amp; Endurance</h1>
+      <h1 className="font-display text-2xl sm:text-3xl font-semibold mb-2">Range &amp; Endurance</h1>
       <p className="text-muted text-sm mb-6 max-w-2xl">
         Physics, ML comparison, parameter sweeps, and optimization suggestions for range and endurance.
       </p>
 
-      <div className="inline-flex rounded-lg border border-border p-1 mb-8 bg-panel/40">
+      <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border border-border p-1 mb-8 bg-panel/40">
         {TABS.map((item) => (
           <button
             key={item.key}
             onClick={() => selectTab(item.key)}
-            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-md font-mono text-xs uppercase tracking-wider transition-colors ${
+            className={`relative inline-flex items-center justify-center gap-2 px-2 sm:px-4 py-2 rounded-md font-mono text-xs uppercase tracking-wider transition-colors ${
               tab === item.key ? 'text-bg' : 'text-muted hover:text-text'
             }`}
           >

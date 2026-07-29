@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 const EQUATIONS = [
   { group: 'Atmosphere', name: 'ISA temperature', eq: 'T(h) = T₀ − Lh' },
   { group: 'Atmosphere', name: 'ISA pressure', eq: 'p(h) = p₀ [T(h)/T₀]^(g₀/RL)' },
@@ -34,13 +36,14 @@ const PARAMS = [
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="max-w-4xl">
       <div className="eyebrow mb-2">Methodology</div>
-      <h1 className="font-display text-3xl font-semibold mb-3">About &amp; Formula Reference</h1>
+      <h1 className="font-display text-3xl font-semibold mb-3">Range, Endurance &amp; Formula Reference</h1>
       <p className="text-sm text-muted leading-relaxed mb-10 max-w-3xl">
-        This page documents the equations used by the current backend. The platform compares
-        physics and machine-learning estimates for range, endurance, and other non-altitude
-        performance parameters. Results are preliminary engineering estimates, not certified limits.
+        This page documents the equations behind the platform's two headline outputs — range and
+        endurance — plus the flight envelope and safety checks built on top of them. The platform
+        compares physics and machine-learning estimates side by side. Results are preliminary
+        engineering estimates, not certified limits.
       </p>
 
       <section className="mb-10">
@@ -127,6 +130,6 @@ export default function AboutPage() {
           </ul>
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 }

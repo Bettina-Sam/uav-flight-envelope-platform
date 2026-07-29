@@ -11,7 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 export default function PageNarrator() {
   const { pathname } = useLocation();
   const { language, t } = useLanguage();
-  const descriptions = PAGE_DESCRIPTIONS[language];
+  const descriptions = PAGE_DESCRIPTIONS[language === 'kn' ? 'en' : language];
   const text = descriptions[pathname] || descriptions.default;
   return <NarrateButton text={text} label={t('Explain Page')} />;
 }

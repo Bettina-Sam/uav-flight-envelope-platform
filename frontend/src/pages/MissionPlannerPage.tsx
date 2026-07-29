@@ -244,7 +244,7 @@ export default function MissionPlannerPage() {
   return (
     <div>
       <div className="eyebrow mb-2">Mission Planning</div>
-      <h1 className="font-display text-3xl font-semibold mb-2">Mission Planner</h1>
+      <h1 className="font-display text-2xl sm:text-3xl font-semibold mb-2">Mission Planner</h1>
       <p className="text-muted text-sm mb-6 max-w-2xl">
         Search a location or click the map to lay down waypoints, pick a mission type, and compute
         a terrain-aware cruise altitude, per-leg energy use, and mission duration — using this
@@ -258,7 +258,7 @@ export default function MissionPlannerPage() {
             key={mt.key}
             onClick={() => setMissionType(mt.key)}
             title={mt.desc}
-            className={`font-mono text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full border transition ${
+            className={`min-h-10 font-mono text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full border transition ${
               missionType === mt.key ? 'bg-cyan text-bg border-cyan' : 'border-border text-muted hover:text-text hover:border-cyan/50'
             }`}
           >
@@ -275,7 +275,7 @@ export default function MissionPlannerPage() {
 
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         {/* Map */}
-        <div className="lg:col-span-2 panel p-2 overflow-hidden">
+        <div className="lg:col-span-2 panel p-1.5 sm:p-2 overflow-hidden">
           {/* Location search */}
           <div className="relative m-1 mb-2" ref={searchBoxRef}>
             <div className="flex gap-2">
@@ -291,7 +291,8 @@ export default function MissionPlannerPage() {
               </div>
               <button
                 onClick={handleSearch} disabled={searching}
-                className="px-3 rounded-md border border-border text-muted hover:text-cyan hover:border-cyan/50 transition disabled:opacity-50"
+                aria-label="Search location"
+                className="min-w-11 min-h-11 px-3 rounded-md border border-border text-muted hover:text-cyan hover:border-cyan/50 transition disabled:opacity-50"
               >
                 {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               </button>
@@ -316,7 +317,7 @@ export default function MissionPlannerPage() {
             </AnimatePresence>
           </div>
 
-          <div className="rounded-md overflow-hidden" style={{ height: 420 }}>
+          <div className="h-[300px] sm:h-[420px] rounded-md overflow-hidden">
             <MapContainer center={DEFAULT_CENTER} zoom={11} style={{ height: '100%', width: '100%' }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -361,7 +362,7 @@ export default function MissionPlannerPage() {
         </div>
 
         {/* Waypoint list + controls */}
-        <div className="panel p-4 flex flex-col">
+        <div className="panel p-3 sm:p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="eyebrow">Waypoints ({waypoints.length})</div>
             {waypoints.length > 1 && (
@@ -371,15 +372,15 @@ export default function MissionPlannerPage() {
           <div className="flex-1 overflow-y-auto space-y-1.5 mb-3" style={{ maxHeight: 220 }}>
             {waypoints.length === 0 && <p className="text-xs text-muted">No waypoints yet — search a place or click the map.</p>}
             {waypoints.map((w, i) => (
-              <div key={i} className="flex items-center justify-between text-xs font-mono border border-border rounded-md px-2 py-1.5">
+              <div key={i} className="flex items-center justify-between gap-2 text-xs font-mono border border-border rounded-md px-2 py-2">
                 <span className="flex items-center gap-1.5 text-text min-w-0 truncate">
                   <MapPin className="w-3 h-3 text-cyan shrink-0" /> {i + 1}. {w.lat.toFixed(3)}, {w.lon.toFixed(3)}
                   {i > 0 && <span className="text-muted shrink-0">· +{haversineKm(waypoints[i - 1], w).toFixed(1)}km</span>}
                 </span>
                 <span className="flex items-center gap-0.5 shrink-0">
-                  <button onClick={() => moveWaypoint(i, -1)} disabled={i === 0} className="text-muted hover:text-cyan disabled:opacity-20 transition p-0.5"><ArrowUp className="w-3 h-3" /></button>
-                  <button onClick={() => moveWaypoint(i, 1)} disabled={i === waypoints.length - 1} className="text-muted hover:text-cyan disabled:opacity-20 transition p-0.5"><ArrowDown className="w-3 h-3" /></button>
-                  <button onClick={() => removeWaypoint(i)} className="text-muted hover:text-red transition p-0.5"><Trash2 className="w-3 h-3" /></button>
+                  <button aria-label={`Move waypoint ${i + 1} up`} onClick={() => moveWaypoint(i, -1)} disabled={i === 0} className="w-9 h-9 inline-flex items-center justify-center text-muted hover:text-cyan disabled:opacity-20 transition"><ArrowUp className="w-4 h-4" /></button>
+                  <button aria-label={`Move waypoint ${i + 1} down`} onClick={() => moveWaypoint(i, 1)} disabled={i === waypoints.length - 1} className="w-9 h-9 inline-flex items-center justify-center text-muted hover:text-cyan disabled:opacity-20 transition"><ArrowDown className="w-4 h-4" /></button>
+                  <button aria-label={`Delete waypoint ${i + 1}`} onClick={() => removeWaypoint(i)} className="w-9 h-9 inline-flex items-center justify-center text-muted hover:text-red transition"><Trash2 className="w-4 h-4" /></button>
                 </span>
               </div>
             ))}
@@ -391,17 +392,17 @@ export default function MissionPlannerPage() {
           </div>
 
           {/* Quick actions */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mb-3">
             <button
               onClick={handleOptimizeOrder} disabled={waypoints.length < 3}
               title="Reorder waypoints (2..N) to reduce backtracking — nearest-neighbor heuristic, launch point stays fixed"
-              className="inline-flex items-center gap-1 text-[10px] font-mono uppercase px-2 py-1.5 rounded-md border border-border text-muted hover:text-cyan hover:border-cyan/50 transition disabled:opacity-30"
+              className="min-h-10 inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1.5 rounded-md border border-border text-muted hover:text-cyan hover:border-cyan/50 transition disabled:opacity-30"
             >
               <Wand2 className="w-3 h-3" /> Optimize Order
             </button>
             <button
               onClick={() => setReturnToLaunch((r) => !r)}
-              className={`inline-flex items-center gap-1 text-[10px] font-mono uppercase px-2 py-1.5 rounded-md border transition ${
+              className={`min-h-10 inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1.5 rounded-md border transition ${
                 returnToLaunch ? 'bg-cyan/15 border-cyan/50 text-cyan' : 'border-border text-muted hover:text-text'
               }`}
             >
@@ -410,7 +411,7 @@ export default function MissionPlannerPage() {
             <button
               onClick={() => setShowGrid((s) => !s)}
               title="Generate a lawnmower survey grid between the first 2 waypoints"
-              className={`inline-flex items-center gap-1 text-[10px] font-mono uppercase px-2 py-1.5 rounded-md border transition ${
+              className={`min-h-10 inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase px-2 py-1.5 rounded-md border transition ${
                 showGrid ? 'bg-cyan/15 border-cyan/50 text-cyan' : 'border-border text-muted hover:text-text'
               }`}
             >
@@ -465,7 +466,7 @@ export default function MissionPlannerPage() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
               Compute Mission
             </motion.button>
-            <button onClick={clearAll} className="px-3 py-2.5 rounded-md border border-border text-muted hover:text-red hover:border-red/50 transition">
+            <button aria-label="Clear mission" onClick={clearAll} className="min-w-11 min-h-11 px-3 py-2.5 rounded-md border border-border text-muted hover:text-red hover:border-red/50 transition">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
@@ -497,7 +498,7 @@ export default function MissionPlannerPage() {
       {result && (
         <>
           {/* Summary stats */}
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-stretch sm:justify-end mb-2 [&>div]:w-full sm:[&>div]:w-auto [&_button]:w-full sm:[&_button]:w-auto">
             <NarrateButton
               text={narrateMissionSummary(
                 result.mission_type,
@@ -543,9 +544,9 @@ export default function MissionPlannerPage() {
           </div>
 
           {/* Altitude profile */}
-          <div className="panel p-5 mb-6">
+          <div className="panel p-2 sm:p-5 mb-6">
             <div className="eyebrow mb-4">Altitude Profile Along Route</div>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={profileData}>
                 <CartesianGrid stroke={c.grid} strokeDasharray="3 3" />
                 <XAxis dataKey="distance" stroke={c.axis} fontSize={10} label={{ value: 'Distance (km)', position: 'insideBottom', offset: -5, fill: c.axis, fontSize: 10 }} />
@@ -592,7 +593,7 @@ export default function MissionPlannerPage() {
           </div>
 
           {/* Leg table */}
-          <div className="panel p-5 overflow-x-auto">
+          <div className="panel p-3 sm:p-5 overflow-x-auto">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div className="eyebrow">Per-Leg Breakdown</div>
               <button

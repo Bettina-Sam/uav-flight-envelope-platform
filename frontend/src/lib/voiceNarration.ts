@@ -13,6 +13,7 @@ export interface VoiceLang {
 
 export const VOICE_LANGS: VoiceLang[] = [
   { code: 'en-US', label: 'English' },
+  { code: 'kn-IN', label: 'ಕನ್ನಡ ಧ್ವನಿ' },
   { code: 'hi-IN', label: 'हिन्दी आवाज़' },
   { code: 'ta-IN', label: 'தமிழ் குரல்' },
 ];
@@ -22,7 +23,7 @@ let currentAudio: HTMLAudioElement | null = null;
 let speechGeneration = 0;
 
 export function isNarrationSupported(): boolean {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  return typeof window !== 'undefined' && ('speechSynthesis' in window || 'Audio' in window);
 }
 
 function rankVoice(voice: SpeechSynthesisVoice, lang: string): number {
@@ -35,7 +36,7 @@ function rankVoice(voice: SpeechSynthesisVoice, lang: string): number {
 }
 
 export async function loadNarrationVoices(timeoutMs = 1800): Promise<SpeechSynthesisVoice[]> {
-  if (!isNarrationSupported()) return [];
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return [];
   const immediate = window.speechSynthesis.getVoices();
   if (immediate.length) return immediate;
   return new Promise((resolve) => {
@@ -59,9 +60,9 @@ export async function findNarrationVoice(lang: string): Promise<SpeechSynthesisV
 
 export async function speak(text: string, lang: string = 'en-US', onEnd?: () => void): Promise<boolean> {
   if (!isNarrationSupported()) return false;
-  window.speechSynthesis.cancel();
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   const voice = await findNarrationVoice(lang);
-  if (!voice && (lang === 'hi-IN' || lang === 'ta-IN')) {
+  if (!voice && (lang === 'hi-IN' || lang === 'ta-IN' || lang === 'kn-IN')) {
     const generation = ++speechGeneration;
     const chunks: string[] = [];
     let remaining = text.trim();
@@ -98,9 +99,10 @@ export async function speak(text: string, lang: string = 'en-US', onEnd?: () => 
     })();
     return true;
   }
+  if (!('speechSynthesis' in window)) return false;
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = lang;
-  utter.rate = lang.startsWith('ta') ? 0.88 : lang.startsWith('hi') ? 0.92 : 1.0;
+  utter.rate = lang.startsWith('ta') || lang.startsWith('kn') ? 0.88 : lang.startsWith('hi') ? 0.92 : 1.0;
   utter.pitch = 1.0;
   if (voice) utter.voice = voice;
   if (onEnd) utter.onend = onEnd;
@@ -111,7 +113,7 @@ export async function speak(text: string, lang: string = 'en-US', onEnd?: () => 
 
 export function stopSpeaking() {
   speechGeneration += 1;
-  if (isNarrationSupported()) window.speechSynthesis.cancel();
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.src = '';
@@ -121,7 +123,7 @@ export function stopSpeaking() {
 }
 
 export function isSpeaking(): boolean {
-  return (isNarrationSupported() && window.speechSynthesis.speaking)
+  return (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis.speaking)
     || !!(currentAudio && !currentAudio.paused && !currentAudio.ended);
 }
 import { getLocalizedSpeechAudio } from '../api/client';

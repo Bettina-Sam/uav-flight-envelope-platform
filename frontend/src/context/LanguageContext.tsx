@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { translateUIStrings } from '../api/client';
 
-export type AppLanguage = 'en' | 'hi' | 'ta';
+export type AppLanguage = 'en' | 'hi' | 'ta' | 'kn';
 
-const LABELS: Record<AppLanguage, Record<string, string>> = {
+const LABELS: Partial<Record<AppLanguage, Record<string, string>>> = {
   en: {},
   hi: {
     Home: 'होम', Design: 'डिज़ाइन', Analysis: 'विश्लेषण', Tools: 'उपकरण',
@@ -29,7 +29,7 @@ const LABELS: Record<AppLanguage, Record<string, string>> = {
   },
 };
 
-const GLOBAL_TERMS: Record<Exclude<AppLanguage, 'en'>, Record<string, string>> = {
+const GLOBAL_TERMS: Partial<Record<Exclude<AppLanguage, 'en'>, Record<string, string>>> = {
   hi: {
     'Flight Envelope Dashboard': 'फ्लाइट एनवेलप डैशबोर्ड', 'Mission Control Snapshot': 'मिशन कंट्रोल स्नैपशॉट',
     '3D Mission Performance': '3D मिशन प्रदर्शन', 'Feature Importance & Model Comparison': 'फीचर महत्व और मॉडल तुलना',
@@ -93,7 +93,7 @@ const GLOBAL_TERMS: Record<Exclude<AppLanguage, 'en'>, Record<string, string>> =
 function translateVisibleText(text: string, language: AppLanguage) {
   if (language === 'en' || !text.trim()) return text;
   let translated = text;
-  const entries = Object.entries(GLOBAL_TERMS[language]).sort((a, b) => b[0].length - a[0].length);
+  const entries = Object.entries(GLOBAL_TERMS[language] || {}).sort((a, b) => b[0].length - a[0].length);
   for (const [source, target] of entries) {
     translated = translated.replace(new RegExp(source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), target);
   }
@@ -112,7 +112,7 @@ const LanguageContext = createContext<LanguageValue | null>(null);
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem('uav-language');
-    return saved === 'hi' || saved === 'ta' ? saved : 'en';
+    return saved === 'hi' || saved === 'ta' || saved === 'kn' ? saved : 'en';
   });
   useEffect(() => {
     localStorage.setItem('uav-language', language);
@@ -122,8 +122,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const originals = new WeakMap<Text, string>();
     const lastRendered = new WeakMap<Text, string>();
     const translatedNodes = new Set<Text>();
+    const translatedElements = new Set<Element>();
+    const originalAttributes = new WeakMap<Element, Record<string, string>>();
     const pending = new Set<string>();
-    const cacheKey = `uav-ui-translations-${language}-v1`;
+    const cacheKey = `uav-ui-translations-${language}-v2`;
     let fullTranslations: Record<string, string> = {};
     try { fullTranslations = JSON.parse(localStorage.getItem(cacheKey) || '{}'); } catch { fullTranslations = {}; }
     let applying = false;
@@ -134,7 +136,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       /[A-Za-z]{2}/.test(text) &&
       text.trim().length > 1 &&
       text.trim().length <= 1500 &&
-      !Object.keys(GLOBAL_TERMS[language]).some((term) => term.toLowerCase() === text.trim().toLowerCase());
+      !Object.keys(GLOBAL_TERMS[language] || {}).some((term) => term.toLowerCase() === text.trim().toLowerCase());
     const flush = async () => {
       flushTimer = null;
       const texts = Array.from(pending).slice(0, 30);
@@ -151,6 +153,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
           if (!original || !node.isConnected || !fullTranslations[original]) return;
           node.nodeValue = fullTranslations[original];
           lastRendered.set(node, fullTranslations[original]);
+        });
+        translatedElements.forEach((element) => {
+          const attributes = originalAttributes.get(element);
+          if (!element.isConnected || !attributes) return;
+          Object.entries(attributes).forEach(([name, original]) => {
+            element.setAttribute(name, fullTranslations[original] || translateVisibleText(original, language));
+          });
         });
         applying = false;
       } catch {
@@ -174,7 +183,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       applying = true;
       for (const node of nodes) {
         const parent = node.parentElement;
-        if (!parent || ['SCRIPT', 'STYLE', 'TEXTAREA', 'OPTION'].includes(parent.tagName) || parent.closest('svg')) continue;
+        // SVG text (chart axis labels, map tooltips, custom diagrams) is
+        // translated too — only script/style/inputs and anything explicitly
+        // opted out via data-i18n-skip (for pixel-tight fixed-width layouts)
+        // are left alone.
+        if (!parent || ['SCRIPT', 'STYLE', 'TEXTAREA'].includes(parent.tagName) || parent.closest('[data-i18n-skip]')) continue;
         if (!originals.has(node)) originals.set(node, node.nodeValue || '');
         const original = originals.get(node) || '';
         const next = fullTranslations[original] || translateVisibleText(original, language);
@@ -182,6 +195,25 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         lastRendered.set(node, next);
         translatedNodes.add(node);
         queue(original);
+      }
+      const elements: Element[] = [];
+      if (root.nodeType === Node.ELEMENT_NODE) elements.push(root as Element);
+      if ('querySelectorAll' in root) elements.push(...Array.from((root as Element).querySelectorAll('*')));
+      for (const element of elements) {
+        if (element.closest('[data-i18n-skip]')) continue;
+        const saved = originalAttributes.get(element) || {};
+        for (const name of ['placeholder', 'title', 'aria-label']) {
+          const current = element.getAttribute(name);
+          if (!current) continue;
+          const original = saved[name] || current;
+          saved[name] = original;
+          element.setAttribute(name, fullTranslations[original] || translateVisibleText(original, language));
+          queue(original);
+        }
+        if (Object.keys(saved).length) {
+          originalAttributes.set(element, saved);
+          translatedElements.add(element);
+        }
       }
       applying = false;
     };
@@ -207,14 +239,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         const original = originals.get(node);
         if (original != null && node.isConnected) node.nodeValue = original;
       });
+      translatedElements.forEach((element) => {
+        const attributes = originalAttributes.get(element);
+        if (!attributes || !element.isConnected) return;
+        Object.entries(attributes).forEach(([name, original]) => element.setAttribute(name, original));
+      });
       applying = false;
     };
   }, [language]);
   const value = useMemo(() => ({
     language,
     setLanguage,
-    t: (text: string) => LABELS[language][text] || text,
-    speechCode: language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-US',
+    t: (text: string) => LABELS[language]?.[text] || text,
+    speechCode: language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : language === 'kn' ? 'kn-IN' : 'en-US',
   }), [language]);
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }

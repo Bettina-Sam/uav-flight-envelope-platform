@@ -116,7 +116,7 @@ export default function GlobalMissionMapPage() {
   return (
     <div>
       <div className="eyebrow mb-2">Mission History</div>
-      <h1 className="font-display text-3xl font-semibold mb-2">Global Mission Map</h1>
+      <h1 className="font-display text-2xl sm:text-3xl font-semibold mb-2">Global Mission Map</h1>
       <div className="flex items-start justify-between gap-3 flex-wrap mb-6">
         <p className="text-muted text-sm max-w-2xl">
           Saved routes are color-coded by mission type. Select a route to follow its animated
@@ -138,8 +138,8 @@ export default function GlobalMissionMapPage() {
         </div>
       ) : (
         <div className="grid lg:grid-cols-3 gap-4">
-          <div ref={mapExportRef} className="lg:col-span-2 panel p-3 overflow-hidden bg-bg">
-            <div className="flex items-center justify-between gap-3 px-2 pb-3">
+          <div ref={mapExportRef} className="lg:col-span-2 panel p-2 sm:p-3 overflow-hidden bg-bg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 sm:px-2 pb-3">
               <div>
                 <div className="font-display text-lg font-semibold">UAV Mission Overview</div>
                 <div className="text-[10px] font-mono text-muted">{missions.length} routes · {allPoints.length} waypoints · generated {new Date().toLocaleDateString()}</div>
@@ -149,7 +149,7 @@ export default function GlobalMissionMapPage() {
                 {conflictCount ? `${conflictCount} conflict${conflictCount > 1 ? 's' : ''}` : 'All clear'}
               </div>
             </div>
-            <div className="rounded-md overflow-hidden border border-border" style={{ height: 500 }}>
+            <div className="h-[320px] sm:h-[500px] rounded-md overflow-hidden border border-border">
               <MapContainer center={center} zoom={allPoints.length > 0 ? 6 : 2} style={{ height: '100%', width: '100%' }}>
                 <TileLayer crossOrigin="anonymous" attribution="© OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 <FitRoutes points={selected && activeMission ? activeMission.waypoints.map((w) => [w.lat, w.lon]) : allPoints} />
@@ -183,7 +183,7 @@ export default function GlobalMissionMapPage() {
             </div>
           </div>
 
-          <div className="panel p-4 overflow-y-auto" style={{ maxHeight: 580 }}>
+          <div className="panel p-3 sm:p-4 overflow-y-auto max-h-none lg:max-h-[580px]">
             <div className="eyebrow mb-3">Missions ({missions.length})</div>
             <div className="space-y-2">
               {missions.map((m, i) => {
@@ -196,7 +196,7 @@ export default function GlobalMissionMapPage() {
                       <span className="flex items-center gap-1.5 text-xs font-mono text-text">
                         {conflict ? <AlertTriangle className="w-3.5 h-3.5 text-red" /> : <Plane className="w-3.5 h-3.5 text-cyan" />} {m.missionType}
                       </span>
-                      <button aria-label="Delete mission" onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }} className="text-muted hover:text-red"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button aria-label="Delete mission" onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }} className="w-10 h-10 inline-flex items-center justify-center text-muted hover:text-red"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="text-[10px] text-muted flex items-center gap-1"><MapPin className="w-3 h-3" /> {m.waypoints.length} waypoints · {m.result.total_distance_km.toFixed(1)} km</div>
                     <div className={`text-[10px] mt-1 ${conflict ? 'text-red' : 'text-green'}`}>{conflict ? 'Review mission conflicts' : 'No detected conflicts'}</div>

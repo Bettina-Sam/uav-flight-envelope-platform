@@ -12,7 +12,7 @@ import StatCard from '../components/StatCard';
 import NarrateButton from '../components/NarrateButton';
 import { drawFlightCard } from '../lib/flightCard';
 import { formatDurationHHMM } from '../lib/duration';
-import RangeEndurance3D from '../components/RangeEndurance3D';
+import RangeEnduranceOverview from '../components/RangeEnduranceOverview';
 import { useLanguage } from '../context/LanguageContext';
 import FlightProfileVisualizer from '../components/FlightProfileVisualizer';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -233,8 +233,10 @@ export default function CommandCenterPage() {
       </div>
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <div className="lg:col-span-2 panel p-4">
-          <div className="eyebrow mb-3">3D Mission Performance</div>
-          <RangeEndurance3D range={p.range_km} enduranceHours={p.endurance_hr} cruiseSpeedMs={liveInput.cruise_speed_ms} />
+          <div className="eyebrow mb-3">Range &amp; Endurance Overview</div>
+          <ErrorBoundary fallbackTitle="Range & endurance visualization failed to load.">
+            <RangeEnduranceOverview range={p.range_km} enduranceHours={p.endurance_hr} cruiseSpeedMs={liveInput.cruise_speed_ms} referenceRangeKm={TAPAS_BASELINE_RANGE_KM} />
+          </ErrorBoundary>
         </div>
         <div className="space-y-4">
         <PerformanceVisual
@@ -302,7 +304,7 @@ export default function CommandCenterPage() {
               <div className="font-mono text-2xl text-text">{score.total.toFixed(0)}<span className="text-sm text-muted">/100</span></div>
             </div>
           </div>
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-[280px]">
+          <div className="w-full sm:flex-1 grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-3 sm:min-w-[280px]">
             <StatCard label="Endurance" value={formatDurationHHMM(p.endurance_hr)} unit="HH:MM" />
             <StatCard label="Direct Range Value" value={p.range_km.toFixed(2)} />
             <StatCard label="L/D" value={p.l_over_d.toFixed(2)} accent="green" />

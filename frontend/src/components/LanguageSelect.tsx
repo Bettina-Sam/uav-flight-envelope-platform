@@ -15,6 +15,7 @@ export default function LanguageSelect() {
         <option value="en">{t('English')}</option>
         <option value="hi">{t('Hindi')}</option>
         <option value="ta">{t('Tamil')}</option>
+        <option value="kn">ಕನ್ನಡ</option>
       </select>
     </label>
   );

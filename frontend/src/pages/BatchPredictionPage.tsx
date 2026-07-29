@@ -53,12 +53,12 @@ export default function BatchPredictionPage() {
         them at once — useful for comparing design variants.
       </p>
 
-      <div className="panel p-8 border-dashed border-2 border-border text-center mb-6"
+      <div className="panel p-4 sm:p-8 border-dashed border-2 border-border text-center mb-6"
            onDragOver={(e) => e.preventDefault()}
            onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}>
         <UploadCloud className="w-8 h-8 text-cyan mx-auto mb-3" />
         <p className="text-sm text-muted mb-4">Drag &amp; drop a CSV file here, or</p>
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
           <button onClick={() => inputRef.current?.click()} className="bg-cyan text-bg font-mono text-xs uppercase tracking-wider px-4 py-2.5 rounded-md font-semibold">
             Choose File
           </button>
@@ -73,8 +73,8 @@ export default function BatchPredictionPage() {
       {error && <div className="panel p-4 border-red/30 text-red text-sm mb-6">{error}</div>}
 
       {rows && (
-        <div className="panel p-5 overflow-x-auto">
-          <div className="flex justify-between items-center mb-4">
+        <div className="panel p-3 sm:p-5 overflow-x-auto">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <div className="eyebrow">{rows.length} configurations processed</div>
             <button onClick={downloadResults} className="inline-flex items-center gap-2 text-cyan font-mono text-xs uppercase tracking-wider">
               <Download className="w-4 h-4" /> Download Results CSV

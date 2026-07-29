@@ -201,7 +201,7 @@ export default function FlightProfileVisualizer({
 
   return (
     <div className="w-full rounded-lg overflow-hidden relative" style={{ background: bgColor }}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 420 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[280px] sm:h-[420px]">
         <defs>
           <radialGradient id="fpvGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor={cyan} stopOpacity="0.25" />

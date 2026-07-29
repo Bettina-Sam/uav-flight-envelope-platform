@@ -108,7 +108,7 @@ export default function FlightEnvelopeDashboard() {
               <div className="font-mono text-2xl text-text">{score.total.toFixed(0)}<span className="text-sm text-muted">/100</span></div>
             </div>
           </div>
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-[280px]">
+          <div className="w-full sm:flex-1 grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-3 sm:min-w-[280px]">
             {Object.entries(score.breakdown).map(([k, v]) => (
               <div key={k}>
                 <div className="text-[10px] font-mono text-muted uppercase">{k.replace(/_/g, ' ')}</div>

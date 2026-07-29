@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Gauge, Cpu, ShieldAlert, FileDown } from 'lucide-react';
+import { ArrowRight, Gauge, Cpu, ShieldAlert, FileDown, Route, Clock } from 'lucide-react';
 
 const FLOW = [
   'Enter UAV Parameters', 'Run Physics Engine', 'Run ML Prediction',
-  'Flight Envelope', 'Recommended Altitude', 'Safety Check', 'Export Report',
+  'Range & Endurance', 'Flight Envelope', 'Recommended Altitude', 'Safety Check', 'Export Report',
 ];
 
 export default function Home() {
@@ -24,15 +24,15 @@ export default function Home() {
           </svg>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="eyebrow mb-4">Physics-Informed ML &middot; Aerospace R&amp;D Prototype</div>
+          <div className="eyebrow mb-4">Physics-Informed ML &middot; Range &amp; Endurance Engineering</div>
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05] max-w-3xl">
-            Predicting the flight envelope <span className="text-cyan">before the aircraft leaves the ground.</span>
+            How far, and for how long <span className="text-cyan">— before the aircraft leaves the ground.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-muted text-base sm:text-lg leading-relaxed">
-            A physics-informed machine learning platform that predicts the feasible altitude band,
-            service ceiling, and recommended cruise altitude of a fixed-wing UAV — derived from
-            first-principles aerodynamics, cross-checked against an XGBoost surrogate model trained
-            on synthetic flight-envelope data.
+            A physics-informed machine learning platform built around the two numbers that decide
+            a mission: range and endurance. It cross-checks first-principles aerodynamics against
+            an XGBoost surrogate model, then layers on the feasible altitude band, service ceiling,
+            and safety status of a fixed-wing UAV.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/input" className="inline-flex items-center gap-2 bg-cyan text-bg font-mono text-xs uppercase tracking-wider px-5 py-3 rounded-md font-semibold hover:opacity-90 transition">
@@ -85,8 +85,10 @@ export default function Home() {
       </motion.section>
 
       {/* Feature grid */}
-      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
+      <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
         {[
+          { icon: Route, title: 'Range & Endurance', desc: 'The headline numbers for every mission — computed from Breguet/electric energy models and cross-checked against the ML surrogate.' },
+          { icon: Clock, title: 'Mission Duration', desc: 'Endurance translated into a real HH:MM budget, with live battery/fuel margin so you know what a mission actually costs.' },
           { icon: Gauge, title: 'Flight Envelope', desc: 'Min/max altitude, service & absolute ceiling from swept steady-level-flight physics.' },
           { icon: Cpu, title: 'ML Surrogate', desc: 'XGBoost-based multi-output regression trained on 6,000 physics-generated configurations.' },
           { icon: ShieldAlert, title: 'Safety Status', desc: 'Rule-based SAFE / CAUTION / CRITICAL classification with transparent reasoning.' },

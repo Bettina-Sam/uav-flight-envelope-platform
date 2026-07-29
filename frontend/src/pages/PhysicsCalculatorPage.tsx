@@ -59,7 +59,7 @@ export default function PhysicsCalculatorPage() {
       {/* Input Summary */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="panel p-5 mb-6">
         <div className="eyebrow mb-3">Input Summary</div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 font-mono text-xs">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 font-mono text-xs">
           <div><div className="text-muted">Mass</div><div className="text-text text-sm mt-0.5">{result.input.mass_kg} kg</div></div>
           <div><div className="text-muted">Payload</div><div className="text-text text-sm mt-0.5">{result.input.payload_kg} kg</div></div>
           <div><div className="text-muted">Wing Area</div><div className="text-text text-sm mt-0.5">{result.input.wing_area_m2} m²</div></div>

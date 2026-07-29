@@ -272,7 +272,7 @@ export default function UAVInputPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="panel p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
+          className="panel p-3 sm:p-5 grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
         >
           <div>
             <div className="eyebrow">Aspect Ratio</div>

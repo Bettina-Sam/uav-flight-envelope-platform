@@ -35,7 +35,7 @@ class UAVInput(BaseModel):
 
 class UITranslationRequest(BaseModel):
     texts: List[str] = Field(..., min_length=1, max_length=30)
-    target_language: str = Field(..., pattern="^(hi|ta)$")
+    target_language: str = Field(..., pattern="^(hi|ta|kn)$")
 
 
 class UITranslationResponse(BaseModel):
@@ -45,7 +45,7 @@ class UITranslationResponse(BaseModel):
 
 class UITextToSpeechRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=220)
-    language: str = Field(..., pattern="^(hi-IN|ta-IN)$")
+    language: str = Field(..., pattern="^(hi-IN|ta-IN|kn-IN)$")
 
 
 class EngineOutInfo(BaseModel):

@@ -221,7 +221,7 @@ export default function Navbar() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden border-t border-border bg-bg font-mono text-xs uppercase tracking-wider overflow-hidden"
+            className="lg:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-bg font-mono text-xs uppercase tracking-wider"
           >
             <NavLink
               to={STANDALONE_LEFT.to}
@@ -242,7 +242,7 @@ export default function Navbar() {
                 {t(l.label)}
               </NavLink>
             ))}
-            <div className="px-3 py-3 flex items-center gap-2 flex-wrap"><LanguageSelect /><PageNarrator /><SoundToggle /><ThemeToggle /><InstallButton compact /></div>
+            <div className="px-3 py-3 flex items-center gap-2 flex-wrap normal-case tracking-normal"><LanguageSelect /><PageNarrator /><SoundToggle /><ThemeToggle /><InstallButton compact /></div>
           </motion.nav>
         )}
       </AnimatePresence>

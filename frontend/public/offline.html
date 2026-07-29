@@ -5,20 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Offline — UAV Flight Envelope Platform</title>
 <style>
+  * { box-sizing: border-box; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background:#0B1220; color:#E6EDF3; font-family: Inter, sans-serif; text-align:center; padding:24px; }
-  .card { max-width: 420px; }
-  h1 { font-family: "Space Grotesk", sans-serif; font-size: 1.5rem; margin-bottom: 8px; color:#4FD1C5; }
+    background:#0B1220; color:#E6EDF3; font-family:Inter, sans-serif; text-align:center; padding:24px; }
+  .card { width:100%; max-width:480px; }
+  h1 { font-family:"Space Grotesk", sans-serif; font-size:1.5rem; margin-bottom:8px; color:#4FD1C5; }
   p { color:#8A9BB5; line-height:1.5; }
   .dot { width:10px; height:10px; border-radius:50%; background:#F5A623; display:inline-block; margin-right:8px; }
+  .actions { display:flex; justify-content:center; margin:24px 0 20px; }
+  button { min-height:44px; border:1px solid #4FD1C5; border-radius:8px; padding:11px 22px;
+    background:#4FD1C5; color:#0B1220; font:600 .8rem "JetBrains Mono", monospace;
+    letter-spacing:.08em; text-transform:uppercase; cursor:pointer; }
+  button:hover { opacity:.9; }
+  button:focus-visible { outline:2px solid #E6EDF3; outline-offset:3px; }
+  .help { border:1px solid #22304A; border-radius:10px; padding:14px 16px; text-align:left; }
+  .help p { margin:5px 0; font-size:.82rem; }
+  .help strong { color:#E6EDF3; }
+  .status { min-height:24px; font-size:.8rem; color:#F5A623; }
+  @media (max-width:480px) {
+    body { padding:18px; }
+    h1 { font-size:1.35rem; }
+    button { width:100%; }
+  }
 </style>
 </head>
 <body>
-  <div class="card">
+  <main class="card">
     <p><span class="dot"></span>NO SIGNAL</p>
     <h1>You're offline</h1>
     <p>The UAV Flight Envelope Platform needs a connection to run physics and ML predictions.
        Previously viewed pages may still be available. Reconnect and try again.</p>
-  </div>
+    <div class="actions">
+      <button type="button" onclick="window.location.reload()">Reconnect &amp; Try Again</button>
+    </div>
+    <div class="help" aria-label="Refresh instructions">
+      <p><strong>Windows / Linux:</strong> press Ctrl + Shift + R</p>
+      <p><strong>Mac:</strong> press Command + Shift + R</p>
+      <p><strong>Mobile:</strong> reconnect, then pull down to refresh or tap the button above.</p>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite">Waiting for a connection…</p>
+  </main>
+  <script>
+    window.addEventListener('online', function () {
+      document.getElementById('status').textContent = 'Connection restored. Reloading…';
+      window.setTimeout(function () { window.location.reload(); }, 500);
+    });
+  </script>
 </body>
 </html>

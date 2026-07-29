@@ -1,10 +1,11 @@
 import type { PredictResponse, DesignScoreResponse } from '../types';
 import { formatDurationLong } from './duration';
 
-type NarrationLanguage = 'en' | 'hi' | 'ta';
+type NarrationLanguage = 'en' | 'hi' | 'ta' | 'kn';
 
 export function narratePhysics(r: PredictResponse, language: NarrationLanguage = 'en'): string {
   const p = r.physics;
+  if (language === 'kn') return `ಭೌತಶಾಸ್ತ್ರದ ಫಲಿತಾಂಶಗಳು. ಅಂದಾಜು ಸಹಿಷ್ಣುತೆ ${formatDurationLong(p.endurance_hr)}, ವ್ಯಾಪ್ತಿ ${p.range_km.toFixed(2)} ಕಿಲೋಮೀಟರ್. ಲಿಫ್ಟ್ ಟು ಡ್ರ್ಯಾಗ್ ಅನುಪಾತ ${p.l_over_d.toFixed(1)}. ಸುರಕ್ಷತಾ ಸ್ಥಿತಿ ${p.safety_status}.`;
   if (language === 'hi') return `भौतिकी परिणाम। अनुमानित सहनकाल ${formatDurationLong(p.endurance_hr)} है और रेंज मान ${p.range_km.toFixed(2)} है। लिफ्ट टू ड्रैग अनुपात ${p.l_over_d.toFixed(1)} है। सुरक्षा स्थिति ${p.safety_status} है।`;
   if (language === 'ta') return `இயற்பியல் முடிவுகள். கணிக்கப்பட்ட தாங்கும் நேரம் ${formatDurationLong(p.endurance_hr)}, தூர மதிப்பு ${p.range_km.toFixed(2)}. லிஃப்ட் டு டிராக் விகிதம் ${p.l_over_d.toFixed(1)}. பாதுகாப்பு நிலை ${p.safety_status}.`;
   return `Physics results. Estimated endurance is ${formatDurationLong(p.endurance_hr)}, `
@@ -14,6 +15,7 @@ export function narratePhysics(r: PredictResponse, language: NarrationLanguage =
 
 export function narrateML(r: PredictResponse, language: NarrationLanguage = 'en'): string {
   const ml = r.ml;
+  if (language === 'kn') return `ಯಂತ್ರ ಕಲಿಕೆ ಮುನ್ಸೂಚನೆ. ${ml.model_used} ಮಾದರಿಯಿಂದ ಅಂದಾಜು ಸಹಿಷ್ಣುತೆ ${formatDurationLong(ml.endurance_hr)}, ವ್ಯಾಪ್ತಿ ${ml.range_km.toFixed(2)} ಕಿಲೋಮೀಟರ್. ಸುರಕ್ಷತಾ ವಿಶ್ವಾಸ ${Math.round(ml.safety_confidence * 100)} ಶೇಕಡಾ.`;
   if (language === 'hi') return `मशीन लर्निंग पूर्वानुमान, ${ml.model_used} मॉडल द्वारा। अनुमानित सहनकाल ${formatDurationLong(ml.endurance_hr)} और रेंज मान ${ml.range_km.toFixed(2)} है। सुरक्षा वर्गीकरण विश्वास ${Math.round(ml.safety_confidence * 100)} प्रतिशत और विश्वसनीयता स्कोर ${Math.round(ml.reliability_score * 100)} प्रतिशत है।`;
   if (language === 'ta') return `இயந்திரக் கற்றல் கணிப்பு, ${ml.model_used} மாதிரி. கணிக்கப்பட்ட தாங்கும் நேரம் ${formatDurationLong(ml.endurance_hr)}, தூர மதிப்பு ${ml.range_km.toFixed(2)}. பாதுகாப்பு வகைப்பாட்டு நம்பிக்கை ${Math.round(ml.safety_confidence * 100)} சதவீதம், நம்பகத்தன்மை மதிப்பெண் ${Math.round(ml.reliability_score * 100)} சதவீதம்.`;
   return `Machine learning prediction, using the ${ml.model_used} model. `
@@ -23,6 +25,7 @@ export function narrateML(r: PredictResponse, language: NarrationLanguage = 'en'
 
 export function narrateDashboard(r: PredictResponse, score?: DesignScoreResponse | null, language: NarrationLanguage = 'en'): string {
   const p = r.physics;
+  if (language === 'kn') return `ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಸಾರಾಂಶ. ಸಹಿಷ್ಣುತೆ ${formatDurationLong(p.endurance_hr)}, ವ್ಯಾಪ್ತಿ ${p.range_km.toFixed(2)} ಕಿಲೋಮೀಟರ್, ಏರಿಕೆ ದರ ಸೆಕೆಂಡಿಗೆ ${p.rate_of_climb_ms.toFixed(1)} ಮೀಟರ್, ಸುರಕ್ಷತಾ ಸ್ಥಿತಿ ${p.safety_status}.${score ? ` ವಿನ್ಯಾಸ ಅಂಕ 100 ರಲ್ಲಿ ${Math.round(score.total)}, ದರ್ಜೆ ${score.grade}.` : ''}`;
   if (language === 'hi') return `डैशबोर्ड सारांश। सहनकाल ${formatDurationLong(p.endurance_hr)}, रेंज मान ${p.range_km.toFixed(2)}, चढ़ाई दर ${p.rate_of_climb_ms.toFixed(1)} मीटर प्रति सेकंड और सुरक्षा स्थिति ${p.safety_status} है।${score ? ` डिज़ाइन स्कोर ${Math.round(score.total)} में से 100, ग्रेड ${score.grade} है।` : ''}`;
   if (language === 'ta') return `டாஷ்போர்டு சுருக்கம். தாங்கும் நேரம் ${formatDurationLong(p.endurance_hr)}, தூர மதிப்பு ${p.range_km.toFixed(2)}, ஏற்ற விகிதம் வினாடிக்கு ${p.rate_of_climb_ms.toFixed(1)} மீட்டர், பாதுகாப்பு நிலை ${p.safety_status}.${score ? ` வடிவமைப்பு மதிப்பெண் 100-ல் ${Math.round(score.total)}, தரம் ${score.grade}.` : ''}`;
   let s = `Flight envelope dashboard summary. Endurance ${formatDurationLong(p.endurance_hr)}, `
@@ -32,6 +35,7 @@ export function narrateDashboard(r: PredictResponse, score?: DesignScoreResponse
 }
 
 export function narrateMissionSummary(missionType: string, waypointCount: number, durationMin: number, distanceKm: number, batteryMarginPct: number, language: NarrationLanguage = 'en'): string {
+  if (language === 'kn') return `${missionType} ಮಿಷನ್ ಸಾರಾಂಶ. ${waypointCount} ಮಾರ್ಗಬಿಂದುಗಳು, ಅಂದಾಜು ಅವಧಿ ${Math.round(durationMin)} ನಿಮಿಷಗಳು, ದೂರ ${distanceKm.toFixed(1)} ಕಿಲೋಮೀಟರ್ ಮತ್ತು ಶಕ್ತಿ ಮೀಸಲು ${Math.round(batteryMarginPct)} ಶೇಕಡಾ.`;
   if (language === 'hi') return `${missionType} मिशन सारांश। ${waypointCount} वेपॉइंट, अनुमानित अवधि ${Math.round(durationMin)} मिनट, दूरी ${distanceKm.toFixed(1)} किलोमीटर और ऊर्जा मार्जिन ${Math.round(batteryMarginPct)} प्रतिशत है।`;
   if (language === 'ta') return `${missionType} மிஷன் சுருக்கம். ${waypointCount} வழிப்புள்ளிகள், கணிக்கப்பட்ட காலம் ${Math.round(durationMin)} நிமிடங்கள், தூரம் ${distanceKm.toFixed(1)} கிலோமீட்டர், ஆற்றல் இருப்பு ${Math.round(batteryMarginPct)} சதவீதம்.`;
   return `Mission summary for a ${missionType} mission with ${waypointCount} waypoints. `
@@ -54,6 +58,10 @@ const ENGLISH_DESCRIPTIONS: Record<string, string> = {
   '/report': 'This is the Report page. Generate a full PDF or CSV engineering report, and manage your saved configurations here.',
   '/command-center': 'This is the Command Center, a consolidated three-dimensional mission performance view of range, endurance, design score, and live tuning.',
   '/missions': 'This is the Global Mission Map, showing every mission you\u2019ve planned across sessions on one map.',
+  '/feature-importance': 'This is the Feature Importance and Model Comparison page. It shows which inputs drive the XGBoost model\u2019s predictions and how it performs against held-out test data.',
+  '/sensitivity': 'This is the Sensitivity page. It shows how range, endurance, and other performance outputs change as each input is varied.',
+  '/about': 'This is the About and Formula Reference page. It documents the current calculations, assumptions, and limitations behind the physics and machine learning models.',
+  '/batch': 'This is the Batch CSV page. Upload a spreadsheet of UAV configurations to run range and endurance predictions on all of them at once.',
   default: 'This page is part of the UAV performance platform, a physics-informed machine learning system for UAV design analysis.',
 };
 
@@ -76,6 +84,7 @@ export const PAGE_DESCRIPTIONS: Record<'en' | 'hi' | 'ta', Record<string, string
     '/feature-importance': 'यह फीचर महत्व और मॉडल तुलना पेज है। यह एक्स जी बूस्ट की फीचर महत्ता और परीक्षण प्रदर्शन दिखाता है।',
     '/sensitivity': 'यह संवेदनशीलता पेज है। यह दिखाता है कि इनपुट बदलने पर प्रदर्शन परिणाम कैसे बदलते हैं।',
     '/about': 'यह परिचय और सूत्र संदर्भ पेज है। इसमें वर्तमान गणनाएँ, मान्यताएँ और सीमाएँ समझाई गई हैं।',
+    '/batch': 'यह बैच CSV पेज है। यहाँ कई यूएवी विन्यासों की एक स्प्रेडशीट अपलोड करें और सभी के लिए रेंज व सहनकाल का एक साथ पूर्वानुमान प्राप्त करें।',
     default: 'यह पेज यूएवी प्रदर्शन प्लेटफ़ॉर्म का भाग है, जो भौतिकी और मशीन लर्निंग आधारित डिज़ाइन विश्लेषण प्रणाली है।',
   },
   ta: {
@@ -95,6 +104,7 @@ export const PAGE_DESCRIPTIONS: Record<'en' | 'hi' | 'ta', Record<string, string
     '/feature-importance': 'இது அம்ச முக்கியத்துவம் மற்றும் மாதிரி ஒப்பீட்டுப் பக்கம். எக்ஸ் ஜி பூஸ்ட் அம்ச முக்கியத்துவம் மற்றும் சோதனை செயல்திறனை காட்டுகிறது.',
     '/sensitivity': 'இது உணர்திறன் பக்கம். உள்ளீடுகள் மாறும்போது செயல்திறன் முடிவுகள் எவ்வாறு மாறுகின்றன என்பதை காட்டுகிறது.',
     '/about': 'இது அறிமுகம் மற்றும் சூத்திரக் குறிப்பு பக்கம். தற்போதைய கணக்கீடுகள், கருதுகோள்கள் மற்றும் வரம்புகளை விளக்குகிறது.',
+    '/batch': 'இது தொகுதி CSV பக்கம். பல UAV அமைப்புகளின் விவரப்பட்டியலை பதிவேற்றி அனைத்திற்கும் ஒரே நேரத்தில் தூரம் மற்றும் தாங்கும் நேர கணிப்புகளை இயக்கவும்.',
     default: 'இது UAV செயல்திறன் தளத்தின் ஒரு பக்கம். இது இயற்பியல் மற்றும் இயந்திரக் கற்றல் சார்ந்த வடிவமைப்பு பகுப்பாய்வு அமைப்பு.',
   },
 };

@@ -13,12 +13,12 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:80
 
 const client = axios.create({ baseURL: API_BASE_URL, timeout: 30000 });
 
-export async function translateUIStrings(texts: string[], target_language: 'hi' | 'ta'): Promise<string[]> {
+export async function translateUIStrings(texts: string[], target_language: 'hi' | 'ta' | 'kn'): Promise<string[]> {
   const res = await client.post<{ translations: string[] }>('/translate/ui', { texts, target_language });
   return res.data.translations;
 }
 
-export async function getLocalizedSpeechAudio(text: string, language: 'hi-IN' | 'ta-IN'): Promise<Blob> {
+export async function getLocalizedSpeechAudio(text: string, language: 'hi-IN' | 'ta-IN' | 'kn-IN'): Promise<Blob> {
   const res = await client.post('/translate/tts', { text, language }, { responseType: 'blob' });
   return res.data;
 }
